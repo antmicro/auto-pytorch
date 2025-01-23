@@ -278,7 +278,7 @@ class TrainerChoice(autoPyTorchChoice):
         if 'use_tensorboard_logger' in X and X['use_tensorboard_logger']:
             writer = SummaryWriter(log_dir=X['backend'].temporary_directory)
 
-        if X["torch_num_threads"] > 0:
+        if X["torch_num_threads"] > 0 and X["torch_num_threads"] != torch.get_num_threads():
             torch.set_num_threads(X["torch_num_threads"])
 
         self.budget_tracker = self.get_budget_tracker(X)

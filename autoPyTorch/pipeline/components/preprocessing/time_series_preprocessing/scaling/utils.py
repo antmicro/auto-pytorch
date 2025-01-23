@@ -94,7 +94,7 @@ class TimeSeriesScaler(BaseEstimator):
         """
         X = sklearn.utils.check_array(
             X,
-            force_all_finite=True,
+            ensure_all_finite=True,
             ensure_2d=False,
             allow_nd=True,
             accept_sparse=False,

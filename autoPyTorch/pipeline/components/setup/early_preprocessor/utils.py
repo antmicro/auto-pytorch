@@ -39,7 +39,7 @@ def preprocess(dataset: np.ndarray, transforms: torchvision.transforms.Compose,
     # check array to convert object to float
     return check_array(
         dataset,
-        force_all_finite=False,
+        ensure_all_finite=False,
         accept_sparse='csr',
         ensure_2d=False,
         allow_nd=True,

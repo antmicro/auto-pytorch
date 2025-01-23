@@ -162,8 +162,8 @@ class BasePipeline(Pipeline):
             fit_params = {}
         fit_params = {key.replace(":", "__"): value for key, value in
                       fit_params.items()}
-        fit_params_steps = self._check_fit_params(**fit_params)
-        Xt = self._fit(X, y, **fit_params_steps)
+        fit_params_steps = self._check_method_params(method="fit", props=fit_params)
+        Xt = self._fit(X, y, routed_params=fit_params_steps)
         return Xt, fit_params_steps[self.steps[-1][0]]
 
     def fit_estimator(self, X: Dict[str, Any],

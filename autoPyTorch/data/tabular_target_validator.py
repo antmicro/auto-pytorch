@@ -24,9 +24,9 @@ ArrayType = Union[np.ndarray, spmatrix]
 def _check_and_to_array(y: SupportedTargetTypes, allow_nan: bool = False) -> ArrayType:
     """ sklearn check array will make sure we have the correct numerical features for the array """
     if allow_nan:
-        return sklearn.utils.check_array(y, force_all_finite=False, accept_sparse='csr', ensure_2d=False)
+        return sklearn.utils.check_array(y, ensure_all_finite=False, accept_sparse='csr', ensure_2d=False)
     else:
-        return sklearn.utils.check_array(y, force_all_finite=True, accept_sparse='csr', ensure_2d=False)
+        return sklearn.utils.check_array(y, ensure_all_finite=True, accept_sparse='csr', ensure_2d=False)
 
 
 def _modify_regression_target(y: ArrayType, allow_nan: bool = False) -> ArrayType:

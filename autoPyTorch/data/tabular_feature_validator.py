@@ -277,7 +277,7 @@ class TabularFeatureValidator(BaseFeatureValidator):
         try:
             X = sklearn.utils.check_array(
                 X,
-                force_all_finite=False,
+                ensure_all_finite=False,
                 accept_sparse='csr'
             )
         except Exception as e:

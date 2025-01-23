@@ -22,7 +22,8 @@ from scipy.sparse import issparse, spmatrix
 
 from sklearn.model_selection import StratifiedShuffleSplit, train_test_split
 from sklearn.model_selection._split import _validate_shuffle_split
-from sklearn.utils import _approximate_mode, check_random_state
+from sklearn.utils import check_random_state
+from sklearn.utils.extmath import _approximate_mode
 from sklearn.utils.validation import _num_samples, check_array
 
 from autoPyTorch.data.base_target_validator import SupportedTargetTypes

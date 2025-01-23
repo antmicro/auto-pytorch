@@ -32,7 +32,7 @@ class ContractTransform(object):
         # we have to squeeze sklearn output which is normally (N, 1)
         data = check_array(
             data,
-            force_all_finite=False,
+            ensure_all_finite=False,
             accept_sparse='csr',
             ensure_2d=False,
             allow_nd=True,
