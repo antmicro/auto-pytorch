@@ -178,7 +178,7 @@ class _ThresholdMetric(autoPyTorchMetric):
 
         if y_type == "binary":
             if y_pred.ndim > 1:
-                y_pred = y_pred[:, 1]
+                y_pred = y_pred[:, 1 if y_pred.shape[1] > 1 else 0]
         elif isinstance(y_pred, list):
             y_pred = np.vstack([p[:, -1] for p in y_pred]).T
 

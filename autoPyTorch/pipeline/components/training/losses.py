@@ -20,8 +20,8 @@ from typing import Any, Dict, List, Optional, Type, Union
 
 import torch
 from torch.nn.modules.loss import (
-    BCEWithLogitsLoss,
-    CrossEntropyLoss,
+    BCEWithLogitsLoss as _BCEWithLogitsLoss,
+    CrossEntropyLoss as _CrossEntropyLoss,
     L1Loss,
     MSELoss
 )
@@ -123,6 +123,28 @@ class QuantileLoss(AbstractForecastingLoss):
         losses_all = torch.mean(torch.concat(losses_all, dim=-1), dim=-1)
 
         return self.aggregate_loss(losses_all)
+
+class BCEWithLogitsLoss(_BCEWithLogitsLoss):
+    def forward(
+        self,
+        predictions: torch.Tensor,
+        target_tensor: torch.Tensor
+    ) -> torch.Tensor:
+        return super().forward(
+            predictions.to(torch.float32).view(target_tensor.shape),
+            target_tensor.to(torch.float32),
+        )
+
+class CrossEntropyLoss(_CrossEntropyLoss):
+    def forward(
+        self,
+        predictions: torch.Tensor,
+        target_tensor: torch.Tensor
+    ) -> torch.Tensor:
+        return super().forward(
+            predictions.to(torch.float32),
+            target_tensor.to(torch.float32),
+        )
 
 
 losses = dict(
