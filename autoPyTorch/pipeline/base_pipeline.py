@@ -389,6 +389,16 @@ class BasePipeline(Pipeline):
                                                          )
                 )
 
+        # Add relations between choices
+        for node_idx, n_ in enumerate(pipeline):
+            node_name, node = n_
+            node.define_forbidden_clauses(
+                cs,
+                dataset_properties=dataset_properties,
+                include=include.get(node_name, None),
+                exclude=exclude.get(node_name, None),
+            )
+
         # And now add forbidden parameter configurations
         # According to matches
         if np.sum(matches) < np.size(matches):

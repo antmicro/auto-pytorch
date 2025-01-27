@@ -135,6 +135,26 @@ class autoPyTorchChoice(object):
             components_dict[name] = available_comp[name]
 
         return components_dict
+    
+    def define_forbidden_clauses(
+        self,
+        cs: ConfigurationSpace,
+        dataset_properties: Optional[Dict[str, BaseDatasetPropertiesType]] = None,
+        default: Optional[str] = None,
+        include: Optional[List[str]] = None,
+        exclude: Optional[List[str]] = None,
+    ):
+        """
+        TODO.
+        """
+        components = self.get_available_components(
+            dataset_properties=dataset_properties,
+            include=include,
+            exclude=exclude,
+        )
+
+        for component in components.values():
+            component.define_forbidden_clauses(cs)
 
     def set_hyperparameters(self,
                             configuration: Configuration,

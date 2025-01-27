@@ -152,6 +152,8 @@ class NetworkBackboneChoice(autoPyTorchChoice):
                 if default_ in available_backbones:
                     default = default_
                     break
+        if default is None:
+            default = list(available_backbones.keys())[0]
         updates = self._get_search_space_updates()
         if '__choice__' in updates.keys():
             choice_hyperparameter = updates['__choice__']

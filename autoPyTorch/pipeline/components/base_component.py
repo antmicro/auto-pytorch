@@ -179,6 +179,19 @@ class autoPyTorchComponent(BaseEstimator):
         """
         raise NotImplementedError()
 
+    @staticmethod
+    def define_forbidden_clauses(cs: ConfigurationSpace, **kwargs):
+        """
+        Defines and adds forbidden clauses to the given configurtaion space.
+
+        Args:
+            cs (ConfigurationSpace):
+                Configuration space where forbidden clauses will be added
+            **kwargs:
+                Additional parameters
+        """
+        pass
+
     def fit(self, X: Dict[str, Any], y: Any = None) -> "autoPyTorchComponent":
         """The fit function calls the fit function of the underlying
         model and returns `self`.
