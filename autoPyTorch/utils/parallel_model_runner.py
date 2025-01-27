@@ -17,6 +17,7 @@ from autoPyTorch.evaluation.tae import ExecuteTaFuncWithQueue, get_cost_of_crash
 from autoPyTorch.evaluation.utils import DisableFileOutputParameters
 from autoPyTorch.pipeline.components.training.metrics.base import autoPyTorchMetric
 from autoPyTorch.utils.common import dict_repr
+from autoPyTorch.utils.config_space import CustomConfiguration
 from autoPyTorch.utils.hyperparameter_search_space_update import HyperparameterSearchSpaceUpdates
 from autoPyTorch.utils.logging_ import PicklableClientLogger
 
@@ -267,7 +268,7 @@ def _process_result(
 
         # indicates the finished model is part of autopytorch search space
         if isinstance(current_config, dict):
-            configuration = Configuration(current_search_space, current_config)  # type: ignore[misc]
+            configuration = CustomConfiguration(current_search_space, current_config)  # type: ignore[misc]
         else:
             # we assume that it is a traditional model and `pipeline_configuration`
             # specifies the configuration.

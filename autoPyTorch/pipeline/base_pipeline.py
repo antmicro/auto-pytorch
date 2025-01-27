@@ -21,6 +21,7 @@ from autoPyTorch.pipeline.create_searchspace_util import (
     find_active_choices,
     get_match_array
 )
+from autoPyTorch.utils.config_space import CustomConfigurationSpace, CustomConfiguration
 from autoPyTorch.utils.common import FitRequirement
 from autoPyTorch.utils.hyperparameter_search_space_update import HyperparameterSearchSpaceUpdates
 
@@ -107,7 +108,7 @@ class BasePipeline(Pipeline):
             self.config = self.config_space.get_default_configuration()
         else:
             if isinstance(config, dict):
-                config = Configuration(self.config_space, config)
+                config = CustomConfiguration(self.config_space, config)
             if self.config_space != config.configuration_space:
                 warnings.warn(self.config_space._children)
                 warnings.warn(config.configuration_space._children)
@@ -136,7 +137,7 @@ class BasePipeline(Pipeline):
             A fit dictionary that contains information to fit a pipeline
             TODO: Use fit_params support from 0.24 scikit learn version instead
             y (None):
-            Used for Compatibility, but it has no funciton in out fit strategy
+            Used for Compatibility, but it has no function in out fit strategy
             TODO: use actual y when moving to fit_params support
         fit_params : dict
             See the documentation of sklearn.pipeline.Pipeline for formatting
@@ -231,7 +232,7 @@ class BasePipeline(Pipeline):
                     new_name = param.replace('%s:' % node_name, '', 1)
                     sub_config_dict[new_name] = value
 
-            sub_configuration = Configuration(sub_configuration_space,
+            sub_configuration = CustomConfiguration(sub_configuration_space,
                                               values=sub_config_dict)
 
             if init_params is not None:
@@ -264,6 +265,7 @@ class BasePipeline(Pipeline):
                 include=self.include,
                 exclude=self.exclude,
             )
+            self.config_space.__class__ = CustomConfigurationSpace
         return self.config_space
 
     def get_model(self) -> torch.nn.Module:

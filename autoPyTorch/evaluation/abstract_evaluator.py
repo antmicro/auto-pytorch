@@ -60,6 +60,7 @@ from autoPyTorch.pipeline.components.training.metrics.utils import (
     get_metrics
 )
 from autoPyTorch.utils.common import dict_repr, subsampler
+from autoPyTorch.utils.config_space import CustomConfiguration
 from autoPyTorch.utils.hyperparameter_search_space_update import HyperparameterSearchSpaceUpdates
 from autoPyTorch.utils.logging_ import PicklableClientLogger, get_named_client_logger
 from autoPyTorch.utils.pipeline import get_dataset_requirements
@@ -103,7 +104,7 @@ class MyTraditionalTabularClassificationPipeline(BaseEstimator):
         configuration_space = self.pipeline.get_hyperparameter_search_space()
         default_configuration = configuration_space.get_default_configuration().get_dictionary()
         default_configuration['model_trainer:tabular_traditional_model:traditional_learner'] = config
-        self.configuration = Configuration(configuration_space, default_configuration)
+        self.configuration = CustomConfiguration(configuration_space, default_configuration)
         self.pipeline.set_hyperparameters(self.configuration)
 
     def fit(self, X: Dict[str, Any], y: Any,
@@ -173,7 +174,7 @@ class MyTraditionalTabularRegressionPipeline(BaseEstimator):
         configuration_space = self.pipeline.get_hyperparameter_search_space()
         default_configuration = configuration_space.get_default_configuration().get_dictionary()
         default_configuration['model_trainer:tabular_traditional_model:traditional_learner'] = config
-        self.configuration = Configuration(configuration_space, default_configuration)
+        self.configuration = CustomConfiguration(configuration_space, default_configuration)
         self.pipeline.set_hyperparameters(self.configuration)
 
     def fit(self, X: Dict[str, Any], y: Any,

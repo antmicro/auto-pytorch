@@ -18,6 +18,7 @@ from autoPyTorch.pipeline.components.setup.network_backbone.forecasting_backbone
     seq_encoder import SeqForecastingEncoderChoice
 from autoPyTorch.utils.hyperparameter_search_space_update import \
     HyperparameterSearchSpaceUpdate
+from autoPyTorch.utils.config_space import CustomConfiguration
 
 
 class ForecastingNetworkChoice(autoPyTorchChoice):
@@ -268,7 +269,7 @@ class ForecastingNetworkChoice(autoPyTorchChoice):
             **updates  # type: ignore[call-arg, arg-type]
         )
 
-        sub_configuration = Configuration(sub_configuration_space,
+        sub_configuration = CustomConfiguration(sub_configuration_space,
                                           values=new_params)
         self.choice = choice_component.set_hyperparameters(sub_configuration)  # type: ignore[assignment]
 
