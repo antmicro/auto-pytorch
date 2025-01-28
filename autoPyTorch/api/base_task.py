@@ -1078,13 +1078,13 @@ class BaseTask(ABC):
 
         # If no dask client was provided, we create one, so that we can
         # start a ensemble process in parallel to smbo optimize
-        if self.n_jobs == 1:
-            self._dask_client = SingleThreadedClient()
-        elif dask_client is None:
-            self._create_dask_client()
-        else:
+        if dask_client is not None:
             self._dask_client = dask_client
             self._is_dask_client_internally_created = False
+        elif self.n_jobs == 1:
+            self._dask_client = SingleThreadedClient()
+        else:
+            self._create_dask_client()
 
         # Handle time resource allocation
         elapsed_time = self._stopwatch.wall_elapsed(experiment_task_name)

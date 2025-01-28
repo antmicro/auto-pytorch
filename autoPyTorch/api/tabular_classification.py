@@ -1,7 +1,7 @@
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 
 import numpy as np
-
+import dask.distributed
 import pandas as pd
 
 from autoPyTorch.api.base_task import BaseTask
@@ -260,6 +260,7 @@ class TabularClassificationTask(BaseTask):
         load_models: bool = True,
         portfolio_selection: Optional[str] = None,
         dataset_compression: Union[Mapping[str, Any], bool] = False,
+        dask_client: Optional[dask.distributed.Client] = None,
     ) -> 'BaseTask':
         """
         Search for the best pipeline configuration for the given dataset.
@@ -464,6 +465,7 @@ class TabularClassificationTask(BaseTask):
             disable_file_output=disable_file_output,
             load_models=load_models,
             portfolio_selection=portfolio_selection,
+            dask_client=dask_client,
         )
 
     def predict(
