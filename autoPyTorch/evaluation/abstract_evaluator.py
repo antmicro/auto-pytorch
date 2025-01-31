@@ -141,6 +141,10 @@ class MyTraditionalTabularClassificationPipeline(BaseEstimator):
         return autoPyTorch.pipeline.traditional_tabular_classification. \
             TraditionalTabularClassificationPipeline.get_default_pipeline_options()
 
+    @property
+    def named_steps(self):
+        return {}
+
 
 class MyTraditionalTabularRegressionPipeline(BaseEstimator):
     """
@@ -207,6 +211,10 @@ class MyTraditionalTabularRegressionPipeline(BaseEstimator):
         return autoPyTorch.pipeline.traditional_tabular_regression.\
             TraditionalTabularRegressionPipeline.get_default_pipeline_options()
 
+    @property
+    def named_steps(self):
+        return {}
+
 
 class DummyClassificationPipeline(DummyClassifier):
     """
@@ -269,6 +277,10 @@ class DummyClassificationPipeline(DummyClassifier):
         return {'budget_type': 'epochs',
                 'epochs': 1,
                 'runtime': 1}
+
+    @property
+    def named_steps(self):
+        return {}
 
 
 class DummyRegressionPipeline(DummyRegressor):
@@ -340,6 +352,10 @@ def fit_and_suppress_warnings(logger: PicklableClientLogger, pipeline: BaseEstim
         pipeline.fit(X, y)
 
     return pipeline
+
+    @property
+    def named_steps(self):
+        return {}
 
 
 class AbstractEvaluator(object):
@@ -955,6 +971,9 @@ class AbstractEvaluator(object):
                 pipeline = None
         else:
             pipeline = None
+
+        if pipeline:
+            pipeline = pipeline.get_pipeline_representation()
 
         self.logger.debug("Saving directory {}, {}, {}".format(self.seed, self.num_run, self.budget))
         self.backend.save_numrun_to_dir(

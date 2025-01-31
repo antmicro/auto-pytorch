@@ -3,6 +3,7 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 import numpy as np
 import dask.distributed
 import pandas as pd
+from ConfigSpace import Configuration
 
 from autoPyTorch.api.base_task import BaseTask
 from autoPyTorch.automl_common.common.utils.backend import Backend
@@ -125,7 +126,9 @@ class TabularClassificationTask(BaseTask):
         dataset_properties: Dict[str, BaseDatasetPropertiesType],
         include_components: Optional[Dict[str, Any]] = None,
         exclude_components: Optional[Dict[str, Any]] = None,
-        search_space_updates: Optional[HyperparameterSearchSpaceUpdates] = None
+        search_space_updates: Optional[HyperparameterSearchSpaceUpdates] = None,
+        configuration: Optional[Configuration] = None,
+        random_state: Optional = None,
     ) -> TabularClassificationPipeline:
         """
         Build pipeline according to current task
@@ -153,10 +156,15 @@ class TabularClassificationTask(BaseTask):
             TabularClassificationPipeline
 
         """
-        return TabularClassificationPipeline(dataset_properties=dataset_properties,
-                                             include=include_components,
-                                             exclude=exclude_components,
-                                             search_space_updates=search_space_updates)
+        return TabularClassificationPipeline(
+            config=configuration,
+            dataset_properties=dataset_properties,
+            include=include_components,
+            exclude=exclude_components,
+            random_state=random_state,
+            search_space_updates=search_space_updates,
+            init_params=self.pipeline_options,
+        )
 
     def _get_dataset_input_validator(
         self,

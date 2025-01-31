@@ -145,7 +145,19 @@ class autoPyTorchChoice(object):
         exclude: Optional[List[str]] = None,
     ):
         """
-        TODO.
+        Defines and adds forbidden clauses from all available choices
+        to the given configurtaion space.
+
+        Args:
+            cs (ConfigurationSpace):
+                Configuration space where forbidden clauses will be added
+            dataset_properties (Optional[Dict]):
+                Describes the dataset to work on
+            include: Optional[Dict[str, Any]]:
+                what components to include. It is an exhaustive
+                list, and will exclusively use this components.
+            exclude: Optional[Dict[str, Any]]:
+                which components to skip. Can't be used together with include
         """
         components = self.get_available_components(
             dataset_properties=dataset_properties,
@@ -156,10 +168,13 @@ class autoPyTorchChoice(object):
         for component in components.values():
             component.define_forbidden_clauses(cs)
 
-    def set_hyperparameters(self,
-                            configuration: Configuration,
-                            init_params: Optional[Dict[str, Any]] = None
-                            ) -> 'autoPyTorchChoice':
+    def set_hyperparameters(
+        self,
+        configuration: Configuration,
+        init_params: Optional[Dict[str, Any]] = None,
+        state: Optional = None,
+        pipeline: Optional = None,
+    ) -> 'autoPyTorchChoice':
         """
         Applies a configuration to the given component.
         This method translate a hierarchical configuration key,
@@ -170,6 +185,10 @@ class autoPyTorchChoice(object):
                 Which configuration to apply to the chosen component
             init_params (Optional[Dict[str, any]]):
                 Optional arguments to initialize the chosen component
+            state (Optional[Dict]):
+                Dictionary containing states of the pipeline steps
+            pipeline (Optional):
+                Dictionary of step names and objects
 
         Returns:
             self: returns an instance of self
@@ -193,6 +212,9 @@ class autoPyTorchChoice(object):
 
         self.new_params = new_params
         self.choice = self.get_components()[choice](**new_params)
+
+        if state and hasattr(self.choice, "set_state"):
+            self.choice.set_state(state, pipeline)
 
         return self
 

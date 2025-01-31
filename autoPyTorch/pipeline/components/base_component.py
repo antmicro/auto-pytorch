@@ -4,7 +4,7 @@ import pkgutil
 import sys
 import warnings
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Tuple
 
 from ConfigSpace.configuration_space import Configuration, ConfigurationSpace
 
@@ -163,6 +163,9 @@ class autoPyTorchComponent(BaseEstimator):
         """
         raise NotImplementedError()
 
+    def get_state(self):
+        return {}
+
     @staticmethod
     def get_hyperparameter_search_space(
         dataset_properties: Optional[Dict[str, BaseDatasetPropertiesType]] = None
@@ -215,10 +218,13 @@ class autoPyTorchComponent(BaseEstimator):
         """
         raise NotImplementedError()
 
-    def set_hyperparameters(self,
-                            configuration: Configuration,
-                            init_params: Optional[Dict[str, Any]] = None
-                            ) -> BaseEstimator:
+    def set_hyperparameters(
+        self,
+        configuration: Configuration,
+        init_params: Optional[Dict[str, Any]] = None,
+        state: Optional[Dict] = None,
+        pipeline: Optional[Dict] = None,
+    ) -> BaseEstimator:
         """
         Applies a configuration to the given component.
         This method translate a hierarchical configuration key,
@@ -229,6 +235,10 @@ class autoPyTorchComponent(BaseEstimator):
                 Which configuration to apply to the chosen component
             init_params (Optional[Dict[str, any]]):
                 Optional arguments to initialize the chosen component
+            state (Optional[Dict]):
+                Dictionary containing states of the pipeline steps
+            pipeline (Optional):
+                Dictionary of step names and objects
 
         Returns:
             An instance of self
@@ -249,6 +259,9 @@ class autoPyTorchComponent(BaseEstimator):
                                      'the init param does not exist.' %
                                      (param, str(self)))
                 setattr(self, param, value)
+
+        if state and hasattr(self, "set_state"):
+            self.set_state(state, pipeline)
 
         return self
 

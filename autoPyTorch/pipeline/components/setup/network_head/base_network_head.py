@@ -25,6 +25,8 @@ class NetworkHeadComponent(autoPyTorchComponent):
         self.head: nn.Module = None
         self.config = kwargs
 
+        self.input_shape, self.output_shape = None, None
+
     def fit(self, X: Dict[str, Any], y: Any = None) -> BaseEstimator:
         """
         Builds the head component and assigns it to self.head
@@ -36,11 +38,12 @@ class NetworkHeadComponent(autoPyTorchComponent):
             Self
         """
         input_shape = X['dataset_properties']['input_shape']
-        output_shape = X['dataset_properties']['output_shape']
+        self.output_shape = X['dataset_properties']['output_shape']
+        self.input_shape = get_output_shape(X['network_backbone'], input_shape=input_shape)
 
         self.head = self.build_head(
-            input_shape=get_output_shape(X['network_backbone'], input_shape=input_shape),
-            output_shape=output_shape,
+            input_shape=self.input_shape,
+            output_shape=self.output_shape,
         )
         return self
 
@@ -82,3 +85,14 @@ class NetworkHeadComponent(autoPyTorchComponent):
             str: Name of the head
         """
         return str(cls.get_properties()["shortname"])
+
+    def get_state(self):
+        return self.head.state_dict()
+
+    def set_state(self, state, pipeline=None):
+        if self.head is None:
+            self.head = self.build_head(
+                input_shape=self.input_shape,
+                output_shape=self.output_shape,
+            )
+        self.head.load_state_dict(state)

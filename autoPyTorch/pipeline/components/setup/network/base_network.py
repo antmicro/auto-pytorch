@@ -149,3 +149,15 @@ class NetworkComponent(autoPyTorchTrainingComponent):
         # Remove unwanted info
         network_name += " (" + str(info) + ")"
         return network_name
+
+    def get_state(self):
+        return self.network.state_dict()
+
+    def set_state(self, state, pipeline=None):
+        if self.network is None and pipeline:
+            self.network = torch.nn.Sequential(
+                pipeline['network_embedding'].choice.embedding,
+                pipeline['network_backbone'].choice.backbone,
+                pipeline['network_head'].choice.head,
+            )
+        self.network.load_state_dict(state)

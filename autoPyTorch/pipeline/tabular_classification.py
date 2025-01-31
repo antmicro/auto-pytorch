@@ -123,7 +123,7 @@ class TabularClassificationPipeline(ClassifierMixin, BasePipeline):
         exclude: Optional[Dict[str, Any]] = None,
         random_state: Optional[np.random.RandomState] = None,
         init_params: Optional[Dict[str, Any]] = None,
-        search_space_updates: Optional[HyperparameterSearchSpaceUpdates] = None
+        search_space_updates: Optional[HyperparameterSearchSpaceUpdates] = None,
     ):
         super().__init__(
             config, steps, dataset_properties, include, exclude,
@@ -349,6 +349,7 @@ class TabularClassificationPipeline(ClassifierMixin, BasePipeline):
         Returns:
             Dict: contains the pipeline representation in a short format
         """
+        representation = super().get_pipeline_representation()
         preprocessing = []
         estimator = []
         skip_steps = ['data_loader', 'trainer', 'lr_scheduler', 'optimizer', 'network_init',
@@ -359,14 +360,16 @@ class TabularClassificationPipeline(ClassifierMixin, BasePipeline):
             properties: Dict[str, Union[str, bool]] = {}
             if isinstance(step_component, autoPyTorchChoice) and step_component.choice is not None:
                 properties = step_component.choice.get_properties()
+                representation["state"][step_name] = step_component.choice.get_state()
             elif isinstance(step_component, autoPyTorchComponent):
                 properties = step_component.get_properties()
+                representation["state"][step_name] = step_component.get_state()
             if 'shortname' in properties:
                 if 'network' in step_name:
                     estimator.append(str(properties['shortname']))
                 else:
                     preprocessing.append(str(properties['shortname']))
-        return {
+        return representation | {
             'Preprocessing': ','.join(preprocessing),
             'Estimator': ','.join(estimator),
         }

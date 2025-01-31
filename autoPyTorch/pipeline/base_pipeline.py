@@ -83,7 +83,7 @@ class BasePipeline(Pipeline):
         exclude: Optional[Dict[str, Any]] = None,
         random_state: Optional[np.random.RandomState] = None,
         init_params: Optional[Dict[str, Any]] = None,
-        search_space_updates: Optional[HyperparameterSearchSpaceUpdates] = None
+        search_space_updates: Optional[HyperparameterSearchSpaceUpdates] = None,
     ):
 
         self.init_params = init_params if init_params is not None else {}
@@ -92,8 +92,12 @@ class BasePipeline(Pipeline):
         self.include = include if include is not None else {}
         self.exclude = exclude if exclude is not None else {}
         self.search_space_updates = search_space_updates
+        
         if random_state is None:
             self.random_state = check_random_state(1)
+        elif isinstance(random_state, (tuple, dict)):
+            self.random_state = np.random.RandomState()
+            self.random_state.set_state(random_state)
         else:
             self.random_state = check_random_state(random_state)
 
@@ -199,7 +203,8 @@ class BasePipeline(Pipeline):
     def set_hyperparameters(
             self,
             configuration: Configuration,
-            init_params: Optional[Dict] = None
+            init_params: Optional[Dict] = None,
+            state: Optional[Dict] = None,
     ) -> 'Pipeline':
         """Method to set the hyperparameter configuration of the pipeline.
 
@@ -210,6 +215,7 @@ class BasePipeline(Pipeline):
             configuration (Configuration): configuration object to search and overwrite in
                 the pertinent spaces
             init_params (Optional[Dict]): optional initial settings for the config
+            state (Optional[Dict]): dictionary containing states of the pipeline steps
 
         """
         self.configuration = configuration
@@ -247,6 +253,8 @@ class BasePipeline(Pipeline):
                 node.set_hyperparameters(
                     configuration=sub_configuration,
                     init_params=None if init_params is None else sub_init_params_dict,
+                    state=state.get(node_name, None) if state else None,
+                    pipeline=dict(self.steps),
                 )
             else:
                 raise NotImplementedError('Not supported yet!')
@@ -604,7 +612,14 @@ class BasePipeline(Pipeline):
         Returns:
             Dict: contains the pipeline representation in a short format
         """
-        raise NotImplementedError()
+        return {
+            "configuration": self.config.get_dictionary(),
+            "random_state": self.random_state.get_state(),
+            "include": self.include,
+            "exclude": self.exclude,
+            "dataset_properties": self.dataset_properties,
+            "state": {},
+        }
 
     @staticmethod
     def get_default_pipeline_options() -> Dict[str, Any]:

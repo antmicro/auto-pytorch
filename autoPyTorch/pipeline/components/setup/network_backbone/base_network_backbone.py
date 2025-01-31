@@ -123,3 +123,11 @@ class NetworkBackboneComponent(autoPyTorchComponent):
             str: Name of the backbone
         """
         return str(cls.get_properties()["shortname"])
+
+    def get_state(self):
+        return self.backbone.state_dict()
+
+    def set_state(self, state, pipeline=None):
+        if self.backbone is None:
+            self.backbone = self.build_backbone(self.input_shape)
+        self.backbone.load_state_dict(state)

@@ -1,6 +1,7 @@
-from typing import Any, Generator, Union
+from typing import Any, Generator, Union, Mapping, Optional
 
 from ConfigSpace.configuration_space import Configuration, ConfigurationSpace
+from ConfigSpace.types import f64, Array
 import numpy as np
 import smac.configspace
 import smac.optimizer.acquisition.maximizer

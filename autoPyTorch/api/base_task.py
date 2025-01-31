@@ -74,6 +74,7 @@ from autoPyTorch.utils.results_manager import MetricResults, ResultsManager, Sea
 from autoPyTorch.utils.results_visualizer import ColorLabelSettings, PlotSettingParams, ResultsVisualizer
 from autoPyTorch.utils.single_thread_client import SingleThreadedClient
 from autoPyTorch.utils.stopwatch import StopWatch
+from autoPyTorch.utils.config_space import CustomConfiguration
 
 
 def _pipeline_predict(pipeline: BasePipeline,
@@ -265,7 +266,9 @@ class BaseTask(ABC):
         dataset_properties: Dict[str, BaseDatasetPropertiesType],
         include_components: Optional[Dict[str, Any]] = None,
         exclude_components: Optional[Dict[str, Any]] = None,
-        search_space_updates: Optional[HyperparameterSearchSpaceUpdates] = None
+        search_space_updates: Optional[HyperparameterSearchSpaceUpdates] = None,
+        random_state: Optional = None,
+        configuration: Optional[Configuration] = None,
     ) -> BasePipeline:
         """
         Build pipeline according to current task
@@ -657,8 +660,12 @@ class BaseTask(ABC):
         if self.ensemble_:
             identifiers = self.ensemble_.get_selected_model_identifiers()
             self.models_ = self._backend.load_models_by_identifiers(identifiers)
+            for k, model in self.models_.items():
+                self.models_[k] = self._create_pipeline_from_representation(model)
             if isinstance(self.resampling_strategy, CrossValTypes):
                 self.cv_models_ = self._backend.load_cv_models_by_identifiers(identifiers)
+                for k, model in self.cv_models_.items():
+                    self.cv_models_[k] = self._create_pipeline_from_representation(model)
 
             if isinstance(self.resampling_strategy, CrossValTypes):
                 if len(self.cv_models_) == 0:
@@ -1798,6 +1805,24 @@ class BaseTask(ABC):
 
         return fitted_pipeline, run_info, run_value, dataset
 
+    def _create_pipeline_from_representation(
+        self,
+        pipeline_representation: Dict[str, Any],
+    ) -> BasePipeline:
+        pipeline = self.build_pipeline(
+            dataset_properties=pipeline_representation["dataset_properties"],
+            include_components=pipeline_representation["include"],
+            exclude_components=pipeline_representation["exclude"],
+            random_state=pipeline_representation["random_state"],
+            configuration=pipeline_representation["configuration"],
+        )
+        pipeline.set_hyperparameters(
+            CustomConfiguration(self.search_space, pipeline_representation["configuration"]),
+            init_params=self.pipeline_options,
+            state=pipeline_representation["state"],
+        )
+        return pipeline
+
     def _get_fitted_pipeline(
         self,
         dataset_name: str,
@@ -1823,11 +1848,12 @@ class BaseTask(ABC):
         else:
             load_function = self._backend.load_model_by_seed_and_id_and_budget
 
-        return load_function(  # type: ignore[no-any-return]
+        pipeline_representation = load_function(  # type: ignore[no-any-return]
             seed=self.seed,
             idx=pipeline_idx,
             budget=float(run_info.budget),
         )
+        return self._create_pipeline_from_representation(pipeline_representation)
 
     def predict(
         self,
@@ -1939,7 +1965,7 @@ class BaseTask(ABC):
 
         Args:
             include_traditional (bool):
-                Whether to include results from tradtional pipelines
+                Whether to include results from traditional pipelines
 
         Returns:
             Configuration (CS.ConfigurationSpace):

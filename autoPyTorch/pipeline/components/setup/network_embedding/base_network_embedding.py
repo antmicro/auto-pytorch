@@ -16,22 +16,23 @@ class NetworkEmbeddingComponent(autoPyTorchSetupComponent):
         self.embedding: Optional[nn.Module] = None
         self.random_state = random_state
         self.feature_shapes: Dict[str, int] = {}
-
+        self.num_numerical_columns, self.num_input_features = None, None
+        
     def fit(self, X: Dict[str, Any], y: Any = None) -> BaseEstimator:
 
-        num_numerical_columns, num_input_features = self._get_args(X)
+        self.num_numerical_columns, self.num_input_features = self._get_args(X)
 
         self.embedding, num_output_features = self.build_embedding(
-            num_input_features=num_input_features,
-            num_numerical_features=num_numerical_columns
+            num_input_features=self.num_input_features,
+            num_numerical_features=self.num_numerical_columns
         )
         if "feature_shapes" in X['dataset_properties']:
             if num_output_features is not None:
                 feature_shapes = X['dataset_properties']['feature_shapes']
                 # forecasting tasks
                 feature_names = X['dataset_properties']['feature_names']
-                for idx_cat, n_output_cat in enumerate(num_output_features[num_numerical_columns:]):
-                    cat_feature_name = feature_names[idx_cat + num_numerical_columns]
+                for idx_cat, n_output_cat in enumerate(num_output_features[self.num_numerical_columns:]):
+                    cat_feature_name = feature_names[idx_cat + self.num_numerical_columns]
                     feature_shapes[cat_feature_name] = n_output_cat
                 self.feature_shapes = feature_shapes
             else:
@@ -77,3 +78,14 @@ class NetworkEmbeddingComponent(autoPyTorchSetupComponent):
         for i, category in enumerate(categories):
             num_input_features[num_numerical_columns + i, ] = len(category)
         return num_numerical_columns, num_input_features
+
+    def get_state(self):
+        return self.embedding.state_dict()
+
+    def set_state(self, state, pipeline=None):
+        if self.embedding is None:
+            self.embedding, num_output_features = self.build_embedding(
+                num_input_features=self.num_input_features,
+                num_numerical_features=self.num_numerical_columns
+            )
+        self.embedding.load_state_dict(state)
