@@ -194,6 +194,12 @@ class TrainEvaluator(AbstractEvaluator):
                 pipeline, 'get_additional_run_info') else {}
 
             status = StatusType.SUCCESS
+            # If training has been stopped early, mark this model as final
+            if "trainer" in pipeline.named_steps and (
+                getattr(pipeline.named_steps["trainer"], "stopped_early", False)
+                and getattr(pipeline.named_steps["trainer"], "error_occurred", False)
+            ):
+                status = StatusType.DONOTADVANCE
 
             self.logger.debug("In train evaluator.fit_predict_and_loss, num_run: {} loss:{},"
                               " status: {},\nadditional run info:\n{}".format(self.num_run,

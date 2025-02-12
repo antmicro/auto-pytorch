@@ -79,6 +79,7 @@ class TrainerChoice(autoPyTorchChoice):
                            (torch.utils.data.DataLoader,),
                            user_defined=False, dataset_property=False)]
         self.checkpoint_dir: Optional[str] = None
+        self.stopped_early = False
 
     def get_fit_requirements(self) -> Optional[List[FitRequirement]]:
         return self._fit_requirements
@@ -306,26 +307,35 @@ class TrainerChoice(autoPyTorchChoice):
 
             self.choice.on_epoch_start(X=X, epoch=epoch)
 
-            # training
-            train_loss, train_metrics = self.choice.train_epoch(
-                train_loader=X['train_data_loader'],
-                epoch=epoch,
-                writer=writer,
-            )
+            try:
+                # training
+                self.logger.debug(f"Start training epoch {epoch}")
+                train_loss, train_metrics = self.choice.train_epoch(
+                    train_loader=X['train_data_loader'],
+                    epoch=epoch,
+                    writer=writer,
+                )
+                # its fine if train_loss is None due to `is_max_time_reached()`
+                if train_loss is None:
+                    if self.budget_tracker.is_max_time_reached():
+                        break
+                    else:
+                        raise RuntimeError("Got an unexpected None in `train_loss`.")
 
-            # its fine if train_loss is None due to `is_max_time_reached()`
-            if train_loss is None:
-                if self.budget_tracker.is_max_time_reached():
+                val_loss, val_metrics, test_loss, test_metrics = None, {}, None, {}
+                if self.eval_valid_each_epoch(X):
+                    if X['val_data_loader']:
+                        val_loss, val_metrics = self.choice.evaluate(X['val_data_loader'], epoch, writer)
+                    if 'test_data_loader' in X and X['test_data_loader']:
+                        test_loss, test_metrics = self.choice.evaluate(X['test_data_loader'], epoch, writer)
+            except Exception as ex:
+                self.logger.error(f"Exception in train/eval: {ex}", exc_info=True)
+                # If previous checkpoints are available, load the best one and stop training
+                if self.checkpoint_dir and epoch > 1:
+                    self.logger.debug("Loading best checkpoint...")
+                    self._load_best_weights_and_clean_checkpoints(X)
                     break
-                else:
-                    raise RuntimeError("Got an unexpected None in `train_loss`.")
-
-            val_loss, val_metrics, test_loss, test_metrics = None, {}, None, {}
-            if self.eval_valid_each_epoch(X):
-                if X['val_data_loader']:
-                    val_loss, val_metrics = self.choice.evaluate(X['val_data_loader'], epoch, writer)
-                if 'test_data_loader' in X and X['test_data_loader']:
-                    test_loss, test_metrics = self.choice.evaluate(X['test_data_loader'], epoch, writer)
+                raise ex
 
             # Save training information
             self.run_summary.add_performance(
@@ -430,6 +440,7 @@ class TrainerChoice(autoPyTorchChoice):
         # Clean the temp dir
         shutil.rmtree(self.checkpoint_dir)
         self.checkpoint_dir = None
+        self.stopped_early = True
 
     def early_stop_handler(self, X: Dict[str, Any]) -> bool:
         """
