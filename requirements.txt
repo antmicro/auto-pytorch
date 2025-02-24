@@ -16,3 +16,4 @@ catboost
 lightgbm
 flaky
 tabulate
+pyrfr @ git+https://github.com/antmicro/random-forest-run.git@sdist
