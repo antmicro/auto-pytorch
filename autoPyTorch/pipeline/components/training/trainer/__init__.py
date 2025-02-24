@@ -80,6 +80,7 @@ class TrainerChoice(autoPyTorchChoice):
                            user_defined=False, dataset_property=False)]
         self.checkpoint_dir: Optional[str] = None
         self.stopped_early = False
+        self.error_occurred = False
 
     def get_fit_requirements(self) -> Optional[List[FitRequirement]]:
         return self._fit_requirements
@@ -330,6 +331,7 @@ class TrainerChoice(autoPyTorchChoice):
                         test_loss, test_metrics = self.choice.evaluate(X['test_data_loader'], epoch, writer)
             except Exception as ex:
                 self.logger.error(f"Exception in train/eval: {ex}", exc_info=True)
+                self.error_occurred = True
                 # If previous checkpoints are available, load the best one and stop training
                 if self.checkpoint_dir and epoch > 1:
                     self.logger.debug("Loading best checkpoint...")
