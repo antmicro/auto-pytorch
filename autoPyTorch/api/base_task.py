@@ -1105,7 +1105,10 @@ class BaseTask(ABC):
             func_eval_time_limit_secs = time_left_for_modelfit
 
         # Make sure that at least 2 models are created for the ensemble process
-        num_models = time_left_for_modelfit // func_eval_time_limit_secs
+        num_models = (
+            time_left_for_modelfit // func_eval_time_limit_secs
+            if func_eval_time_limit_secs != 0 else 0
+        )
         if num_models < 2 and self.ensemble_size > 0:
             func_eval_time_limit_secs = time_left_for_modelfit // 2
             self._logger.warning(
