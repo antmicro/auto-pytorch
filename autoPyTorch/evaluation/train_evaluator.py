@@ -21,6 +21,7 @@ from autoPyTorch.evaluation.abstract_evaluator import (
 )
 from autoPyTorch.evaluation.utils import DisableFileOutputParameters
 from autoPyTorch.pipeline.components.training.metrics.base import autoPyTorchMetric
+from autoPyTorch.pipeline.components.training.trainer import ModelTooLargeError
 from autoPyTorch.utils.common import dict_repr, subsampler
 from autoPyTorch.utils.hyperparameter_search_space_update import HyperparameterSearchSpaceUpdates
 
@@ -183,23 +184,42 @@ class TrainEvaluator(AbstractEvaluator):
             train_split, test_split = self.splits[split_id]
             self.Y_optimization = self.y_train[test_split]
             self.Y_actual_train = self.y_train[train_split]
-            y_train_pred, y_opt_pred, y_valid_pred, y_test_pred = self._fit_and_predict(pipeline, split_id,
-                                                                                        train_indices=train_split,
-                                                                                        test_indices=test_split,
-                                                                                        add_pipeline_to_self=True)
-            train_loss = self._loss(self.y_train[train_split], y_train_pred)
-            loss = self._loss(self.y_train[test_split], y_opt_pred)
+            loss = None
+            train_loss = None
+            status = None
+            y_train_pred = None
+            y_opt_pred = None
+            y_valid_pred = None
+            y_test_pred = None
+            try:
+                (
+                    y_train_pred,
+                    y_opt_pred,
+                    y_valid_pred,
+                    y_test_pred
+                ) = self._fit_and_predict(
+                    pipeline, split_id,
+                    train_indices=train_split,
+                    test_indices=test_split,
+                    add_pipeline_to_self=True
+                )
+                train_loss = self._loss(self.y_train[train_split], y_train_pred)
+                loss = self._loss(self.y_train[test_split], y_opt_pred)
+            except ModelTooLargeError as ex:
+                self.logger.warning(str(ex) + " - skipping the model")
+                status = StatusType.MEMOUT
+            else:
+                # If training has been stopped early, mark this model as final
+                if "trainer" in pipeline.named_steps and (
+                    getattr(pipeline.named_steps["trainer"], "stopped_early", False)
+                    and getattr(pipeline.named_steps["trainer"], "error_occurred", False)
+                ):
+                    status = StatusType.DONOTADVANCE
+                else:
+                    status = StatusType.SUCCESS
 
             additional_run_info = pipeline.get_additional_run_info() if hasattr(
                 pipeline, 'get_additional_run_info') else {}
-
-            status = StatusType.SUCCESS
-            # If training has been stopped early, mark this model as final
-            if "trainer" in pipeline.named_steps and (
-                getattr(pipeline.named_steps["trainer"], "stopped_early", False)
-                and getattr(pipeline.named_steps["trainer"], "error_occurred", False)
-            ):
-                status = StatusType.DONOTADVANCE
 
             self.logger.debug("In train evaluator.fit_predict_and_loss, num_run: {} loss:{},"
                               " status: {},\nadditional run info:\n{}".format(self.num_run,
