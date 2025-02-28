@@ -47,6 +47,14 @@ def add_trainer(trainer: BaseTrainerComponent) -> None:
     _addons.add_component(trainer)
 
 
+class ModelTooLargeError(Exception):
+    """
+    Raised if generated model is too large.
+    """
+
+    ...
+
+
 class TrainerChoice(autoPyTorchChoice):
     """This class is an interface to the PyTorch trainer.
 
@@ -293,6 +301,14 @@ class TrainerChoice(autoPyTorchChoice):
             trainable_parameter_count,
             optimize_metric=None if not X['metrics_during_training'] else X.get('optimize_metric'),
         )
+
+        model_size = self.get_model_size(X['network'])
+        max_model_size = X['max_model_size_kb']
+        self.logger.debug(f"Max model size: {X['max_model_size_kb']} ~ Model size: {model_size}")
+        if max_model_size > 0 and max_model_size < model_size:
+            raise ModelTooLargeError(
+                f"Model size ({model_size} KB) larger than maximum ({max_model_size} KB)"
+            )
 
         if X['val_data_loader'] is not None:
             self.early_stopping_split_type = 'val'
@@ -590,6 +606,25 @@ class TrainerChoice(autoPyTorchChoice):
         trainable_parameter_count = sum(
             p.numel() for p in model.parameters() if p.requires_grad)
         return total_parameter_count, trainable_parameter_count
+
+    @staticmethod
+    def get_model_size(model: torch.nn.Module) -> float:
+        """
+        Calculates model size, combining parameters and buffers
+
+        Args:
+            model (torch.nn.Module): the module from which to count parameters
+
+        Returns:
+            The model size in KB
+        """
+        model_size = 0
+        for param in model.parameters():
+            model_size += param.nelement() * param.element_size()
+        for buffer in model.buffers():
+            model_size += buffer.nelement() * buffer.element_size()
+        return model_size / 1024
+
 
     def save_model_for_ensemble(self) -> str:
         raise NotImplementedError()
