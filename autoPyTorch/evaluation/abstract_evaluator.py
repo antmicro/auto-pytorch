@@ -64,6 +64,7 @@ from autoPyTorch.utils.config_space import CustomConfiguration
 from autoPyTorch.utils.hyperparameter_search_space_update import HyperparameterSearchSpaceUpdates
 from autoPyTorch.utils.logging_ import PicklableClientLogger, get_named_client_logger
 from autoPyTorch.utils.pipeline import get_dataset_requirements
+from smac.utils.constants import MAXINT
 
 __all__ = [
     'AbstractEvaluator',
@@ -744,8 +745,8 @@ class AbstractEvaluator(object):
         return calculate_loss(
             y_true, y_hat, self.task_type, metrics, **metric_kwargs)
 
-    def finish_up(self, loss: Dict[str, float], train_loss: Dict[str, float],
-                  opt_pred: np.ndarray, valid_pred: Optional[np.ndarray],
+    def finish_up(self, loss: Optional[Dict[str, float]], train_loss: Optional[Dict[str, float]],
+                  opt_pred: Optional[np.ndarray], valid_pred: Optional[np.ndarray],
                   test_pred: Optional[np.ndarray], additional_run_info: Optional[Dict],
                   file_output: bool, status: StatusType, **metric_kwargs: Any
                   ) -> Optional[Tuple[float, float, int, Dict]]:
@@ -758,12 +759,12 @@ class AbstractEvaluator(object):
         normal usecase and when the runsolver kills us here :)
 
         Args:
-            loss (Dict[str, float]):
+            loss (Optional[Dict[str, float]]):
                 The optimization loss, calculated on the validation set. This will
                 be the cost used in SMAC
-            train_loss (Dict[str, float]):
+            train_loss (Optional[Dict[str, float]]):
                 The train loss, calculated on the train set
-            opt_pred (np.ndarray):
+            opt_pred (Optional[np.ndarray]):
                 The predictions on the validation set. This validation set is created
                 from the resampling strategy
             valid_pred (Optional[np.ndarray]):
@@ -793,7 +794,7 @@ class AbstractEvaluator(object):
 
         self.duration = time.time() - self.starttime
 
-        if file_output:
+        if file_output and opt_pred is not None:
             loss_, additional_run_info_ = self.file_output(
                 opt_pred, valid_pred, test_pred,
             )
@@ -808,7 +809,10 @@ class AbstractEvaluator(object):
         if loss_ is not None:
             return self.duration, loss_, self.seed, additional_run_info_
 
-        cost = loss[self.metric.name]
+        if loss is not None:
+            cost = loss[self.metric.name]
+        else:
+            cost = MAXINT  # Set the worst possible loss
 
         additional_run_info = (
             {} if additional_run_info is None else additional_run_info
