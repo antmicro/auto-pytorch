@@ -294,7 +294,7 @@ class ExecuteTaFuncWithQueue(AbstractTAFunc):
         ):
             run_info = run_info._replace(cutoff=int(np.ceil(run_info.cutoff)))
 
-        self.logger.info("Starting to evaluate configuration %s" % run_info.config.config_id)
+        self.logger.info("Starting to evaluate configuration %s" % run_info.config.config_id, console=True)
         run_info, run_value = super().run_wrapper(run_info=run_info)
 
         if not is_intensified:  # It is required for the SMAC compatibility

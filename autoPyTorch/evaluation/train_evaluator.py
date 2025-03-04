@@ -177,7 +177,7 @@ class TrainEvaluator(AbstractEvaluator):
         additional_run_info: Optional[Dict] = None
         if self.num_folds == 1:
             split_id = 0
-            self.logger.info("Starting fit {}".format(split_id))
+            self.logger.info("Starting training", console=True)
 
             pipeline = self._get_pipeline()
 
@@ -388,7 +388,7 @@ class TrainEvaluator(AbstractEvaluator):
              **self.fit_dictionary}  # fit dictionary
         y = None
         fit_and_suppress_warnings(self.logger, pipeline, X, y)
-        self.logger.info("Model fitted, now predicting")
+        self.logger.info("Model fitted, now evaluating", console=True)
         (
             Y_train_pred,
             Y_opt_pred,

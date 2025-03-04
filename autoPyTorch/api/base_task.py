@@ -735,7 +735,7 @@ class BaseTask(ABC):
         # For dummy estimator, we always expect the num_run to be 1
         num_run = 1
 
-        self._logger.info("Starting to create dummy predictions.")
+        self._logger.info("Starting to create dummy predictions.", console=True)
 
         memory_limit = self._memory_limit
         if memory_limit is not None:
@@ -765,7 +765,7 @@ class BaseTask(ABC):
 
         status, _, _, additional_info = ta.run(num_run, cutoff=self._time_for_task)
         if status == StatusType.SUCCESS:
-            self._logger.info("Finished creating dummy predictions.")
+            self._logger.info("Finished creating dummy predictions.", console=True)
         else:
             if additional_info.get('exitcode') == -6:
                 err_msg = "Dummy prediction failed with run state {},\n" \
@@ -808,7 +808,7 @@ class BaseTask(ABC):
         assert self._logger is not None
         assert self._dask_client is not None
 
-        self._logger.info("Starting to create traditional classifier predictions.")
+        self._logger.info("Starting to create traditional classifier predictions.", console=True)
 
         # Initialise run history for the traditional classifiers
         memory_limit = self._memory_limit
@@ -1152,9 +1152,9 @@ class BaseTask(ABC):
                                  "is no time left. Try increasing the value "
                                  "of time_left_for_this_task.")
         elif self.ensemble_size <= 0:
-            self._logger.info("Not starting ensemble builder as ensemble size is 0")
+            self._logger.info("Not starting ensemble builder as ensemble size is 0", console=True)
         else:
-            self._logger.info("Starting ensemble")
+            self._logger.info("Starting ensemble", console=True)
             ensemble_task_name = 'ensemble'
             self._stopwatch.start_task(ensemble_task_name)
             proc_ensemble = EnsembleBuilderManager(
@@ -1187,7 +1187,7 @@ class BaseTask(ABC):
         elapsed_time = self._stopwatch.wall_elapsed(experiment_task_name)
         time_left_for_smac = max(0, total_walltime_limit - elapsed_time)
 
-        self._logger.info("Starting SMAC with %5.2f sec time left" % time_left_for_smac)
+        self._logger.info("Starting SMAC with %5.2f sec time left" % time_left_for_smac, console=True)
         if time_left_for_smac <= 0:
             self._logger.warning(" Not starting SMAC because there is no time left")
         else:
@@ -1245,7 +1245,7 @@ class BaseTask(ABC):
                 raise
         # Wait until the ensemble process is finished to avoid shutting down
         # while the ensemble builder tries to access the data
-        self._logger.info("Starting Shutdown")
+        self._logger.info("Starting Shutdown", console=True)
 
         if proc_ensemble is not None:
             self._results_manager.ensemble_performance_history = list(proc_ensemble.history)
