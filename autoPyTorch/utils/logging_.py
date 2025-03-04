@@ -15,6 +15,11 @@ from typing import Any, Dict, Optional, Type
 import yaml
 
 
+# Add new level for displaying INFO messages in console
+INFO_CONSOLE_VALUE = logging.INFO + 5
+logging.addLevelName("INFO", INFO_CONSOLE_VALUE)
+
+
 def setup_logger(
     output_dir: str,
     filename: Optional[str] = None,
@@ -81,7 +86,7 @@ def _get_named_client_logger(
             Port used to communicate with the server
     Returns
     -------
-        local_loger: a logger object that has a socket handler
+        local_logger: a logger object that has a socket handler
     """
     # Setup the logger configuration
     # We add client not only to identify that this is the client
@@ -160,8 +165,8 @@ class PicklableClientLogger(object):
     def debug(self, msg: str, *args: Any, **kwargs: Any) -> None:
         self.logger.debug(msg, *args, **kwargs)
 
-    def info(self, msg: str, *args: Any, **kwargs: Any) -> None:
-        self.logger.info(msg, *args, **kwargs)
+    def info(self, msg: str, console=False, *args: Any, **kwargs: Any) -> None:
+        self.logger.log(INFO_CONSOLE_VALUE if console else logging.INFO, msg, *args, **kwargs)
 
     def warning(self, msg: str, *args: Any, **kwargs: Any) -> None:
         self.logger.warning(msg, *args, **kwargs)
