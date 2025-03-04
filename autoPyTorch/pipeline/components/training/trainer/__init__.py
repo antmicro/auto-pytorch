@@ -346,10 +346,12 @@ class TrainerChoice(autoPyTorchChoice):
                     if 'test_data_loader' in X and X['test_data_loader']:
                         test_loss, test_metrics = self.choice.evaluate(X['test_data_loader'], epoch, writer)
             except Exception as ex:
-                self.logger.error(f"Exception in train/eval: {ex}", exc_info=True)
+                self.logger.error(f"Exception in train/eval: {ex}")
+                self.logger.debug("Traceback for train/eval exception", exc_info=True)
                 self.error_occurred = True
                 # If previous checkpoints are available, load the best one and stop training
                 if self.checkpoint_dir and epoch > 1:
+                    epoch = self.run_summary.get_best_epoch()
                     self.logger.debug("Loading best checkpoint...")
                     self._load_best_weights_and_clean_checkpoints(X)
                     break
@@ -414,9 +416,15 @@ class TrainerChoice(autoPyTorchChoice):
 
         # As training have finished, load the best weight
         if self.checkpoint_dir is not None:
-            self._load_best_weights_and_clean_checkpoints(X)
+            epoch = self._load_best_weights_and_clean_checkpoints(X)
 
-        self.logger.info(f"Finished training with {self.run_summary.repr_last_epoch()}")
+        self.logger.info(
+            f"Finished training with following validation metrics (epoch {epoch})",
+            console=True,
+        )
+        metrics = self.run_summary.get_epoch_metrics(epoch, "val_metrics")
+        for name, metric in (metrics if metrics else {}).items():
+            self.logger.info(f"{name}: {metric}", console=True)
 
         # Tag as fitted
         self.fitted_ = True
@@ -438,12 +446,15 @@ class TrainerChoice(autoPyTorchChoice):
 
         return labels
 
-    def _load_best_weights_and_clean_checkpoints(self, X: Dict[str, Any]) -> None:
+    def _load_best_weights_and_clean_checkpoints(self, X: Dict[str, Any]) -> int:
         """
         Load the best model until the last epoch and delete all the files for checkpoints.
 
         Args:
             X (Dict[str, Any]): Dependencies needed by current component to perform fit
+
+        Returns:
+            int: The number of the best epoch
         """
         assert self.checkpoint_dir is not None  # mypy
         assert self.run_summary is not None  # mypy
@@ -459,6 +470,7 @@ class TrainerChoice(autoPyTorchChoice):
         shutil.rmtree(self.checkpoint_dir)
         self.checkpoint_dir = None
         self.stopped_early = True
+        return best_epoch
 
     def early_stop_handler(self, X: Dict[str, Any]) -> bool:
         """
