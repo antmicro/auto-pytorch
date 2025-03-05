@@ -186,6 +186,26 @@ class RunSummary(object):
         string += '=' * 40
         return string
 
+    def get_epoch_metrics(self, epoch: int, name: str) -> Optional[dict]:
+        """
+        Extracts metrics (of a given name) from the epoch.
+
+        Args:
+            epoch (int): Number of epoch to extract metrics from
+            name (str): Name of metrics, e.g. test_metrics or val_loss
+
+        Returns:
+            Optional[dict]: Dictionary with found metrics, None if no data was found
+        """
+        if name not in self.performance_tracker:
+            return None
+        value = self.performance_tracker[name]
+        if epoch not in value:
+            return None
+        if isinstance(value[epoch], dict):
+            return value[epoch]
+        return {name: value[epoch]}
+
     def is_empty(self) -> bool:
         """
         Checks if the object is empty or not
