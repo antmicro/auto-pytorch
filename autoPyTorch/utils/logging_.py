@@ -5,8 +5,10 @@ import logging.handlers
 import multiprocessing
 import os
 import pickle
+import psutil
 import random
 import select
+import signal
 import socketserver
 import struct
 import threading
@@ -261,6 +263,10 @@ def start_log_server(
             break
         except OSError:
             continue
+        except KeyboardInterrupt:
+            parent = psutil.Process(os.getppid())
+            parent.send_signal(signal.SIGINT)
+            break
 
 
 class LogRecordSocketReceiver(socketserver.ThreadingTCPServer):
