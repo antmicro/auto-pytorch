@@ -1269,14 +1269,19 @@ class BaseTask(ABC):
         self._close_dask_client()
         self._logger.info("Finished closing the dask infrastructure")
 
-        if load_models:
-            self._logger.info("Loading models...")
-            self._load_models()
-            self._logger.info("Finished loading models...")
+        try:
+            if load_models:
+                self._logger.info("Loading models...")
+                self._load_models()
+                self._logger.info("Finished loading models...")
 
-        # Clean up the logger
-        self._logger.info("Starting to clean up the logger")
-        self._clean_logger()
+        except Exception:
+            raise
+
+        finally:
+            # Clean up the logger
+            self._logger.info("Starting to clean up the logger")
+            self._clean_logger()
 
         return self
 
