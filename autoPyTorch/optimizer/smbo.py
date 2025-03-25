@@ -411,7 +411,10 @@ class AutoMLSMBO(object):
 
         self.logger.info("initialised SMBO, running SMBO.optimize()")
 
-        smac.optimize()
+        try:
+            smac.optimize()
+        except KeyboardInterrupt:
+            self.logger.info("Stopping optimization")
 
         self.logger.info("finished SMBO.optimize()")
 
