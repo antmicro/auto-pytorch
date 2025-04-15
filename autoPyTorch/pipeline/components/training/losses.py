@@ -143,7 +143,7 @@ class CrossEntropyLoss(_CrossEntropyLoss):
     ) -> torch.Tensor:
         return super().forward(
             predictions.to(torch.float32),
-            target_tensor.to(torch.float32),
+            target_tensor.to(torch.long),
         )
 
 
