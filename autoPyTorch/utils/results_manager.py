@@ -355,7 +355,7 @@ class SearchResults:
 
         is_traditional = False  # If run is not successful, unsure ==> not True ==> False
         if run_value.additional_info is not None:
-            is_traditional = run_value.additional_info['configuration_origin'] == 'traditional'
+            is_traditional = run_value.additional_info.get('configuration_origin', None) == 'traditional'
 
         self.status_types.append(run_value.status)
         self.configs.append(config)
