@@ -7,5 +7,5 @@
     "early_stopping": 20,
     "use_tensorboard_logger": "False",
     "metrics_during_training": "True",
-    "max_model_size_kb": -1
+    "pre_training_callback": null
 }
