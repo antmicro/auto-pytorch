@@ -1,4 +1,5 @@
 from typing import Any, Dict, Optional
+from multiprocessing import cpu_count
 
 from ConfigSpace.configuration_space import ConfigurationSpace
 from ConfigSpace.hyperparameters import (
@@ -113,7 +114,7 @@ class BaseDataLoaderComponent(autoPyTorchTrainingComponent):
             train_dataset,
             batch_size=min(self.batch_size, len(train_dataset)),
             shuffle=True,
-            num_workers=X.get('num_workers', 0),
+            num_workers=X.get('num_workers', cpu_count() // 2),
             pin_memory=X.get('pin_memory', True),
             drop_last=X.get('drop_last', True),
             collate_fn=custom_collate_fn,
@@ -125,7 +126,7 @@ class BaseDataLoaderComponent(autoPyTorchTrainingComponent):
                 val_dataset,
                 batch_size=min(self.batch_size, len(val_dataset)),
                 shuffle=False,
-                num_workers=X.get('num_workers', 0),
+                num_workers=X.get('num_workers', cpu_count() // 2),
                 pin_memory=X.get('pin_memory', True),
                 drop_last=X.get('drop_last', True),
                 collate_fn=custom_collate_fn,
@@ -138,12 +139,14 @@ class BaseDataLoaderComponent(autoPyTorchTrainingComponent):
 
         return self
 
-    def get_loader(self, X: np.ndarray, y: Optional[np.ndarray] = None, batch_size: int = np.iinfo(np.int32).max,
-                   ) -> torch.utils.data.DataLoader:
+    def get_loader(self, X: np.ndarray, y: Optional[np.ndarray] = None, batch_size: Optional[int] = None,
+                   num_workers: int = cpu_count() // 2) -> torch.utils.data.DataLoader:
         """
         Creates a data loader object from the provided data,
         applying the transformations meant to validation objects
         """
+        if batch_size is None:
+            batch_size = np.iinfo(np.int32).max
 
         dataset = BaseDataset(
             train_tensors=(X, y),
@@ -157,6 +160,7 @@ class BaseDataLoaderComponent(autoPyTorchTrainingComponent):
             batch_size=min(batch_size, len(dataset)),
             shuffle=False,
             collate_fn=custom_collate_fn,
+            num_workers=num_workers,
         )
 
     def build_transform(self, X: Dict[str, Any], mode: str) -> torchvision.transforms.Compose:
