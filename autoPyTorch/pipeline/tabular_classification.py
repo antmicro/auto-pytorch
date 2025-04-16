@@ -134,9 +134,9 @@ class TabularClassificationPipeline(ClassifierMixin, BasePipeline):
         # model, so we comply with https://pytorch.org/docs/stable/notes/randomness.html
         torch.manual_seed(self.random_state.get_state()[1][0])
 
-    def _predict_proba(self, X: np.ndarray) -> np.ndarray:
+    def _predict_proba(self, X: np.ndarray, batch_size: Optional[int] = None) -> np.ndarray:
         # Pre-process X
-        loader = self.named_steps['data_loader'].get_loader(X=X)
+        loader = self.named_steps['data_loader'].get_loader(X=X, batch_size=batch_size)
         pred = self.named_steps['network'].predict(loader)
         if isinstance(self.dataset_properties['output_shape'], int):
             # The final layer is always softmax now (`pred` already gives pseudo proba)
@@ -161,31 +161,7 @@ class TabularClassificationPipeline(ClassifierMixin, BasePipeline):
             np.ndarray:
                 Probabilities of the target being certain class
         """
-        if batch_size is None:
-            y = self._predict_proba(X)
-
-        else:
-            if not isinstance(batch_size, int):
-                raise ValueError("Argument 'batch_size' must be of type int, "
-                                 "but is '%s'" % type(batch_size))
-            if batch_size <= 0:
-                raise ValueError("Argument 'batch_size' must be positive, "
-                                 "but is %d" % batch_size)
-
-            else:
-                # Probe for the target array dimensions
-                target = self.predict_proba(X[0:2].copy())
-
-                y = np.zeros((X.shape[0], target.shape[1]),
-                             dtype=np.float32)
-
-                for k in range(max(1, int(np.ceil(float(X.shape[0]) / batch_size)))):
-                    batch_from = k * batch_size
-                    batch_to = min([(k + 1) * batch_size, X.shape[0]])
-                    pred_prob = self.predict_proba(X[batch_from:batch_to], batch_size=None)
-                    y[batch_from:batch_to] = pred_prob.astype(np.float32)
-
-        return y
+        return self._predict_proba(X, batch_size)
 
     def score(self, X: np.ndarray, y: np.ndarray,
               batch_size: Optional[int] = None,
