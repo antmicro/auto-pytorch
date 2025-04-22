@@ -7,5 +7,6 @@
     "early_stopping": 20,
     "use_tensorboard_logger": "False",
     "metrics_during_training": "True",
-    "pre_training_callback": null
+    "pre_training_callback": null,
+    "data_loader_workers": null
 }

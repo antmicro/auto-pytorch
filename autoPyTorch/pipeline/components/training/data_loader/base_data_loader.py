@@ -54,6 +54,8 @@ class BaseDataLoaderComponent(autoPyTorchTrainingComponent):
         self.val_transform: Optional[torchvision.transforms.Compose] = None
         self.test_transform: Optional[torchvision.transforms.Compose] = None
 
+        self.default_num_workers = None
+
         # Define fit requirements
         self.add_fit_requirements([
             FitRequirement("split_id", (int,), user_defined=True, dataset_property=False),
@@ -110,11 +112,17 @@ class BaseDataLoaderComponent(autoPyTorchTrainingComponent):
 
         train_dataset = datamanager.get_dataset(split_id=X['split_id'], train=True)
 
+        self.default_num_workers = X["data_loader_workers"]
+        if self.default_num_workers is None:
+            self.default_num_workers = 1
+        elif self.default_num_workers < 0:
+            self.default_num_workers = cpu_count()
+
         self.train_data_loader = torch.utils.data.DataLoader(
             train_dataset,
             batch_size=min(self.batch_size, len(train_dataset)),
             shuffle=True,
-            num_workers=X.get('num_workers', cpu_count() // 2),
+            num_workers=self.default_num_workers,
             pin_memory=X.get('pin_memory', True),
             drop_last=X.get('drop_last', True),
             collate_fn=custom_collate_fn,
@@ -126,7 +134,7 @@ class BaseDataLoaderComponent(autoPyTorchTrainingComponent):
                 val_dataset,
                 batch_size=min(self.batch_size, len(val_dataset)),
                 shuffle=False,
-                num_workers=X.get('num_workers', cpu_count() // 2),
+                num_workers=self.default_num_workers,
                 pin_memory=X.get('pin_memory', True),
                 drop_last=X.get('drop_last', True),
                 collate_fn=custom_collate_fn,
@@ -140,13 +148,15 @@ class BaseDataLoaderComponent(autoPyTorchTrainingComponent):
         return self
 
     def get_loader(self, X: np.ndarray, y: Optional[np.ndarray] = None, batch_size: Optional[int] = None,
-                   num_workers: int = cpu_count() // 2) -> torch.utils.data.DataLoader:
+                   num_workers: Optional[int] = None) -> torch.utils.data.DataLoader:
         """
         Creates a data loader object from the provided data,
         applying the transformations meant to validation objects
         """
         if batch_size is None:
             batch_size = np.iinfo(np.int32).max
+        if num_workers is None:
+            num_workers = self.default_num_workers
 
         dataset = BaseDataset(
             train_tensors=(X, y),
