@@ -52,7 +52,9 @@ class ModelTooLargeError(Exception):
     Raised if generated model is too large.
     """
 
-    ...
+    def __init__(self, model_size: float, *args):
+        super().__init__(*args)
+        self.model_size = model_size
 
 
 class TrainerChoice(autoPyTorchChoice):
@@ -287,6 +289,14 @@ class TrainerChoice(autoPyTorchChoice):
         writer = None
         if 'use_tensorboard_logger' in X and X['use_tensorboard_logger']:
             writer = SummaryWriter(log_dir=X['backend'].temporary_directory)
+            writer.add_scalar(
+                "num_run", X["num_run"]
+            )
+
+        total_parameter_count, trainable_parameter_count = self.count_parameters(X['network'])
+        writer.add_scalar("Model/Total parameters", total_parameter_count)
+        writer.add_scalar("Model/Trainable parameters", trainable_parameter_count)
+        writer.add_scalar("Model/Number of layers", self.count_layers(X['network']))
 
         if X["torch_num_threads"] > 0 and X["torch_num_threads"] != torch.get_num_threads():
             torch.set_num_threads(X["torch_num_threads"])
@@ -296,11 +306,18 @@ class TrainerChoice(autoPyTorchChoice):
         pre_training_callback = X["pre_training_callback"]
         if pre_training_callback:
             self.logger.debug("Running pre-training callback")
-            pre_training_callback(X)
+            try:
+                model_size = pre_training_callback(X)
+                self.logger.debug(f"Pre-training callback, model size: {model_size}")
+                if model_size and writer:
+                    writer.add_scalar("Model/Optimized model size [KB]", model_size)
+            except ModelTooLargeError as er:
+                if writer:
+                    writer.add_scalar("Model/Optimized model size [KB]", er.model_size)
+                raise
 
         self.prepare_trainer(X)
 
-        total_parameter_count, trainable_parameter_count = self.count_parameters(X['network'])
         self.run_summary = RunSummary(
             total_parameter_count,
             trainable_parameter_count,
@@ -341,7 +358,7 @@ class TrainerChoice(autoPyTorchChoice):
                     if X['val_data_loader']:
                         val_loss, val_metrics = self.choice.evaluate(X['val_data_loader'], epoch, writer)
                     if 'test_data_loader' in X and X['test_data_loader']:
-                        test_loss, test_metrics = self.choice.evaluate(X['test_data_loader'], epoch, writer)
+                        test_loss, test_metrics = self.choice.evaluate(X['test_data_loader'], epoch, writer, "Test")
             except Exception as ex:
                 self.logger.error(f"Exception in train/eval: {ex}")
                 self.logger.debug("Traceback for train/eval exception", exc_info=True)
@@ -397,7 +414,7 @@ class TrainerChoice(autoPyTorchChoice):
             if X['val_data_loader']:
                 val_loss, val_metrics = self.choice.evaluate(X['val_data_loader'], epoch, writer)
             if 'test_data_loader' in X and X['val_data_loader']:
-                test_loss, test_metrics = self.choice.evaluate(X['test_data_loader'], epoch, writer)
+                test_loss, test_metrics = self.choice.evaluate(X['test_data_loader'], epoch, writer, "Test")
             self.run_summary.add_performance(
                 epoch=epoch,
                 start_time=start_time,
@@ -615,6 +632,24 @@ class TrainerChoice(autoPyTorchChoice):
         trainable_parameter_count = sum(
             p.numel() for p in model.parameters() if p.requires_grad)
         return total_parameter_count, trainable_parameter_count
+
+    @staticmethod
+    def count_layers(model: torch.nn.Module) -> int:
+        """
+        Returns the number of layers (modules without children
+        with trainable parameters) of the given model.
+
+        Args:
+            model (torch.nn.Module): the module from which to count parameters
+
+        Returns:
+            layers_count: the number of layers
+        """
+        layers_count = 0
+        for module in model.modules():
+            if not list(module.children()) and [p for p in module.parameters() if p.requires_grad]:
+                layers_count += 1
+        return layers_count
 
     def save_model_for_ensemble(self) -> str:
         raise NotImplementedError()
