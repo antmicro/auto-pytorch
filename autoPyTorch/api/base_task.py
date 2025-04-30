@@ -2038,6 +2038,19 @@ class BaseTask(ABC):
             scoring_functions=self._scoring_functions
         )
 
+    def get_statistics(self) -> Dict[str, Union[int, float]]:
+        """
+        Returns statistics from the SMAC search
+
+        Returns:
+            (Dict):
+                Dictionary with gathered statistics.
+        """
+        return self._results_manager.get_statistics(
+            self._scoring_functions,
+            self._metric,
+        )[0]
+
     def sprint_statistics(self) -> str:
         """
         Prints statistics about the SMAC search.

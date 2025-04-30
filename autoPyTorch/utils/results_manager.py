@@ -676,6 +676,36 @@ class ResultsManager:
         self._check_run_history()
         return SearchResults(metric=metric, scoring_functions=scoring_functions, run_history=self.run_history)
 
+    def get_statistics(
+        self,
+        scoring_functions: List[autoPyTorchMetric],
+        metric: autoPyTorchMetric
+    ) -> Tuple[Dict, SearchResults]:
+        """
+        Gathers statistics from the SMAC search.
+
+        Args:
+            scoring_functions (List[autoPyTorchMetric]):
+                Metrics to show in the results.
+            metric (autoPyTorchMetric):
+                A metric that is evaluated when searching with fit AutoPytorch.
+
+        Returns:
+            (Dict):
+                Dictionary with gathered statistics.
+            (SearchResults):
+                An instance that contains the results from search
+        """
+        search_results = self.get_search_results(scoring_functions, metric)
+        success_status = (StatusType.SUCCESS, StatusType.DONOTADVANCE)
+        return {
+            "runs": len(search_results.status_types),
+            "success": sum([s in success_status for s in search_results.status_types]),
+            "crash": sum([s == StatusType.CRASHED for s in search_results.status_types]),
+            "timeout": sum([s == StatusType.TIMEOUT for s in search_results.status_types]),
+            "memout": sum([s == StatusType.MEMOUT for s in search_results.status_types]),
+        }, search_results
+
     def sprint_statistics(
         self,
         dataset_name: str,
@@ -707,29 +737,23 @@ class ResultsManager:
             (str):
                 Formatted string with statistics
         """
-        search_results = self.get_search_results(scoring_functions, metric)
-        success_status = (StatusType.SUCCESS, StatusType.DONOTADVANCE)
         sio = io.StringIO()
         sio.write("autoPyTorch results:\n")
         sio.write(f"\tDataset name: {dataset_name}\n")
         sio.write(f"\tOptimisation Metric: {metric}\n")
 
-        num_runs = len(search_results.status_types)
-        num_success = sum([s in success_status for s in search_results.status_types])
-        num_crash = sum([s == StatusType.CRASHED for s in search_results.status_types])
-        num_timeout = sum([s == StatusType.TIMEOUT for s in search_results.status_types])
-        num_memout = sum([s == StatusType.MEMOUT for s in search_results.status_types])
+        stats, search_results = self.get_statistics(scoring_functions, metric)
 
-        if num_success > 0:
+        if stats['success'] > 0:
             best_score = metric._sign * np.max(metric._sign * search_results.opt_scores)
             sio.write(f"\tBest validation score: {best_score}\n")
 
-        sio.write(f"\tNumber of target algorithm runs: {num_runs}\n")
-        sio.write(f"\tNumber of successful target algorithm runs: {num_success}\n")
-        sio.write(f"\tNumber of crashed target algorithm runs: {num_crash}\n")
+        sio.write(f"\tNumber of target algorithm runs: {stats['runs']}\n")
+        sio.write(f"\tNumber of successful target algorithm runs: {stats['success']}\n")
+        sio.write(f"\tNumber of crashed target algorithm runs: {stats['crash']}\n")
         sio.write(f"\tNumber of target algorithms that exceeded the time "
-                  f"limit: {num_timeout}\n")
+                  f"limit: {stats['timeout']}\n")
         sio.write(f"\tNumber of target algorithms that exceeded the memory "
-                  f"limit: {num_memout}\n")
+                  f"limit: {stats['memout']}\n")
 
         return sio.getvalue()
