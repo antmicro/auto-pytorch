@@ -359,6 +359,13 @@ class BaseTrainerComponent(autoPyTorchTrainingComponent):
         if N == 0:
             return None, {}
 
+        if writer:
+            writer.add_scalar(
+                "Train/epoch/avg_loss",
+                loss_sum / N,
+                epoch
+            )
+
         self._scheduler_step(step_interval=StepIntervalUnit.epoch, loss=loss_sum / N)
 
         if self.metrics_during_training:
@@ -406,7 +413,7 @@ class BaseTrainerComponent(autoPyTorchTrainingComponent):
         return loss.item(), outputs
 
     def evaluate(self, test_loader: torch.utils.data.DataLoader, epoch: int,
-                 writer: Optional[SummaryWriter],
+                 writer: Optional[SummaryWriter], data_part: str = "Val",
                  ) -> Tuple[float, Dict[str, float]]:
         """
         Evaluate the model in both metrics and criterion
@@ -414,6 +421,8 @@ class BaseTrainerComponent(autoPyTorchTrainingComponent):
         Args:
             test_loader (torch.utils.data.DataLoader): generator of features/label
             epoch (int): the current epoch for tracking purposes
+            writer (Optional[SummaryWriter]): Tensorboard writer for training data
+            data_part (str): part of the dataset that is used for evaluation
 
         Returns:
             float: test loss
@@ -444,10 +453,17 @@ class BaseTrainerComponent(autoPyTorchTrainingComponent):
 
                 if writer:
                     writer.add_scalar(
-                        'Val/loss',
+                        f"{data_part}/loss",
                         loss.item(),
                         epoch * len(test_loader) + step,
                     )
+
+        if writer and N != 0:
+            writer.add_scalar(
+                f"{data_part}/epoch/avg_loss",
+                loss_sum / N,
+                epoch,
+            )
 
         self._scheduler_step(step_interval=StepIntervalUnit.valid, loss=loss_sum / N)
 
