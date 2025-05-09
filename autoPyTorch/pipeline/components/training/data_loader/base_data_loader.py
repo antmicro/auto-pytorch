@@ -1,3 +1,4 @@
+import sys
 from typing import Any, Dict, Optional
 from multiprocessing import cpu_count
 
@@ -9,6 +10,7 @@ from ConfigSpace.hyperparameters import (
 import numpy as np
 
 import torch
+import torch.multiprocessing
 
 import torchvision
 
@@ -21,6 +23,10 @@ from autoPyTorch.utils.common import (
     add_hyperparameter,
     custom_collate_fn
 )
+
+# For Mac, setup multiprocessing to avoid `Too many open files` error
+if sys.platform == "darwin":
+    torch.multiprocessing.set_sharing_strategy('file_system')
 
 
 class BaseDataLoaderComponent(autoPyTorchTrainingComponent):
