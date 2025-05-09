@@ -33,7 +33,7 @@ from autoPyTorch.pipeline.components.training.trainer.base_trainer import (
     BudgetTracker,
     RunSummary,
 )
-from autoPyTorch.utils.common import FitRequirement, get_device_from_fit_dictionary
+from autoPyTorch.utils.common import FitRequirement, get_device_from_fit_dictionary, TAETimeoutException
 from autoPyTorch.utils.logging_ import get_named_client_logger
 
 trainer_directory = os.path.split(__file__)[0]
@@ -360,6 +360,8 @@ class TrainerChoice(autoPyTorchChoice):
                     if 'test_data_loader' in X and X['test_data_loader']:
                         test_loss, test_metrics = self.choice.evaluate(X['test_data_loader'], epoch, writer, "Test")
             except Exception as ex:
+                if isinstance(ex, TAETimeoutException):
+                    raise ex
                 self.logger.error(f"Exception in train/eval: {ex}")
                 self.logger.debug("Traceback for train/eval exception", exc_info=True)
                 self.error_occurred = True
