@@ -4,12 +4,18 @@ import json
 import logging
 import math
 import multiprocessing
+import threading
 import os
 import time
 import traceback
 import warnings
+import sys
+import io
+import signal
 from queue import Empty
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from contextlib import redirect_stdout, redirect_stderr
+from dataclasses import dataclass
 
 from ConfigSpace import Configuration
 
@@ -48,10 +54,21 @@ from autoPyTorch.evaluation.utils import (
     read_queue
 )
 from autoPyTorch.pipeline.components.training.metrics.base import autoPyTorchMetric
-from autoPyTorch.utils.common import dict_repr, replace_string_bool_to_bool
+from autoPyTorch.utils.common import dict_repr, replace_string_bool_to_bool, TAETimeoutException
 from autoPyTorch.utils.hyperparameter_search_space_update import HyperparameterSearchSpaceUpdates
 from autoPyTorch.utils.logging_ import PicklableClientLogger, get_named_client_logger
 from autoPyTorch.utils.parallel import preload_modules
+
+
+@dataclass
+class TAResult:
+    """
+    The dataclass mimicking structure of pynisher results.
+    """
+    exit_status: Union[int, Exception]
+    stdout: str
+    stderr: str
+    wall_clock_time: float
 
 
 def fit_predict_try_except_decorator(
@@ -60,7 +77,7 @@ def fit_predict_try_except_decorator(
     try:
         ta(queue=queue, **kwargs)
     except Exception as e:
-        if isinstance(e, (MemoryError, pynisher.TimeoutException)):
+        if isinstance(e, (MemoryError, pynisher.TimeoutException, TAETimeoutException)):
             # Re-raise the memory error to let the pynisher handle that correctly
             raise e
 
@@ -216,9 +233,11 @@ class ExecuteTaFuncWithQueue(AbstractTAFunc):
             )
         self.all_supported_metrics = all_supported_metrics
 
-        if memory_limit is not None:
+        if memory_limit is not None and sys.platform != "darwin":
             memory_limit = int(math.ceil(memory_limit))
         self.memory_limit = memory_limit
+        if self.memory_limit:
+            self.logger.warning("Memory limit is not supported on MacOS")
 
         self.search_space_updates = search_space_updates
 
@@ -344,8 +363,9 @@ class ExecuteTaFuncWithQueue(AbstractTAFunc):
         else:
             num_run = config.config_id + self.initial_num_run
 
-        self.logger.debug("Search space updates for {}: {}".format(num_run,
-                                                                   self.search_space_updates))
+        self.logger.debug(
+            "Search space updates for {}: {}".format(num_run, self.search_space_updates)
+        )
         obj_kwargs = dict(
             queue=queue,
             config=config,
@@ -364,14 +384,19 @@ class ExecuteTaFuncWithQueue(AbstractTAFunc):
             pipeline_options=self.pipeline_options,
             logger_port=self.logger_port,
             all_supported_metrics=self.all_supported_metrics,
-            search_space_updates=self.search_space_updates
+            search_space_updates=self.search_space_updates,
         )
 
         info: Optional[List[RunValue]]
         additional_run_info: Dict[str, Any]
         try:
-            obj = pynisher.enforce_limits(**pynisher_arguments)(self.ta)
-            obj(**obj_kwargs)
+            # Use pynisher if not on Mac
+            if sys.platform != "darwin":
+                obj = pynisher.enforce_limits(**pynisher_arguments)(self.ta)
+                obj(**obj_kwargs)
+            # For Mac, run evaluation with custom timeout handling
+            else:
+                obj = self._handle_timeout_on_mac(cutoff, **obj_kwargs)
         except Exception as e:
             exception_traceback = traceback.format_exc()
             error_message = repr(e)
@@ -382,7 +407,7 @@ class ExecuteTaFuncWithQueue(AbstractTAFunc):
             return StatusType.CRASHED, self.cost_for_crash, 0.0, additional_run_info
 
         if obj.exit_status in (pynisher.TimeoutException, pynisher.MemorylimitException):
-            # Even if the pynisher thinks that a timeout or memout occured,
+            # Even if the pynisher thinks that a timeout or memout occurred,
             # it can be that the target algorithm wrote something into the queue
             #  - then we treat it as a successful run
             try:
@@ -525,3 +550,63 @@ class ExecuteTaFuncWithQueue(AbstractTAFunc):
             )
         )
         return status, cost, runtime, additional_run_info
+
+    def _handle_timeout_on_mac(
+        self, time_limit: Optional[float] = None, **ta_kwargs
+    ) -> TAResult:
+        """
+        Runs TA function with given time limit.
+
+        Args:
+            time_limit (Optional[float]):
+                The maximum time in seconds that the function can be processed.
+            ta_kwargs:
+                Additional arguments passed to the TA function.
+
+        Returns:
+            TAResult:
+                Object mimicking results of TA function called with pynisher
+        """
+        buf_out, buf_err = io.StringIO(), io.StringIO()
+        obj = TAResult(0, None, None, None)
+        start_time = time.time()
+        _main_thread_id = threading.get_ident()
+        _thread_stop = False
+
+        if time_limit:
+            # Spawn thread sending signal to main thread after given time limit
+            def wait_and_stop_ta():
+                self.logger.debug(f"Timer thread waiting for {time_limit}s")
+                slept_time = 0.0
+                while slept_time < time_limit:
+                    if _thread_stop:
+                        return
+                    to_sleep = min(2, time_limit - slept_time)
+                    time.sleep(to_sleep)
+                    slept_time = time.time() - start_time
+                self.logger.debug("Timer thread: sending signal")
+                signal.pthread_kill(_main_thread_id, signal.SIGUSR1)
+
+            threading.Thread(target=wait_and_stop_ta).start()
+
+        def _timeout_signal_handler(sig, stack_frame):
+            raise TAETimeoutException
+
+        try:
+            # Setup signal handler raising the TAETimeoutException
+            original_sig_handler = signal.getsignal(signal.SIGUSR1)
+            signal.signal(signal.SIGUSR1, _timeout_signal_handler)
+
+            # Run evaluation function catching the output
+            with redirect_stdout(buf_out), redirect_stderr(buf_err):
+                self.ta(**ta_kwargs)
+        except TAETimeoutException:
+            obj.exit_status = pynisher.TimeoutException
+        finally:
+            signal.signal(signal.SIGUSR1, original_sig_handler)
+            _thread_stop = True
+
+            obj.wall_clock_time = time.time() - start_time
+            obj.stdout = buf_out.getvalue()
+            obj.stderr = buf_err.getvalue()
+        return obj
