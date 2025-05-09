@@ -105,6 +105,13 @@ class autoPyTorchEnum(str, Enum):
         return str(self.value)
 
 
+class TAETimeoutException(Exception):
+    """
+    Raised if evaluation exeded the given time limit.
+    """
+
+    ...
+
 def custom_collate_fn(batch: List, x_collector: Callable = default_collate) -> List[Optional[torch.Tensor]]:
     """
     In the case of not providing a y tensor, in a
