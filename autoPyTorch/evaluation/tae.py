@@ -236,7 +236,7 @@ class ExecuteTaFuncWithQueue(AbstractTAFunc):
         if memory_limit is not None and sys.platform != "darwin":
             memory_limit = int(math.ceil(memory_limit))
         self.memory_limit = memory_limit
-        if self.memory_limit:
+        if self.memory_limit and sys.platform == "darwin":
             self.logger.warning("Memory limit is not supported on MacOS")
 
         self.search_space_updates = search_space_updates
