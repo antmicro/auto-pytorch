@@ -131,6 +131,8 @@ class ExecuteTaFuncWithQueue(AbstractTAFunc):
     in parallel
     """
 
+    last_epoch = 0
+
     def __init__(
         self,
         backend: Backend,
@@ -385,6 +387,7 @@ class ExecuteTaFuncWithQueue(AbstractTAFunc):
             logger_port=self.logger_port,
             all_supported_metrics=self.all_supported_metrics,
             search_space_updates=self.search_space_updates,
+            epoch_done=ExecuteTaFuncWithQueue.last_epoch,
         )
 
         info: Optional[List[RunValue]]
@@ -415,6 +418,7 @@ class ExecuteTaFuncWithQueue(AbstractTAFunc):
                 result = info[-1]['loss']  # type: ignore
                 status = info[-1]['status']  # type: ignore
                 additional_run_info = info[-1]['additional_run_info']  # type: ignore
+                ExecuteTaFuncWithQueue.last_epoch = info[-1]["last_epoch"]
 
                 if obj.stdout:
                     additional_run_info['subprocess_stdout'] = obj.stdout
@@ -462,6 +466,7 @@ class ExecuteTaFuncWithQueue(AbstractTAFunc):
                 result = info[-1]['loss']  # type: ignore
                 status = info[-1]['status']  # type: ignore
                 additional_run_info = info[-1]['additional_run_info']  # type: ignore
+                ExecuteTaFuncWithQueue.last_epoch = info[-1]["last_epoch"]
 
                 if obj.exit_status == 0:
                     cost = result

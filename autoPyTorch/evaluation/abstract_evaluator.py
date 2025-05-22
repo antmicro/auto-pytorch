@@ -26,6 +26,7 @@ except ModuleNotFoundError:
     forecasting_dependencies_installed = False
 import autoPyTorch.pipeline.traditional_tabular_classification
 import autoPyTorch.pipeline.traditional_tabular_regression
+from autoPyTorch.pipeline.components.training.trainer import TrainerChoice
 from autoPyTorch.automl_common.common.utils.backend import Backend
 from autoPyTorch.constants import (
     CLASSIFICATION_TASKS,
@@ -832,9 +833,12 @@ class AbstractEvaluator(object):
             if not isinstance(self.configuration, Configuration) else self.configuration.get_dictionary()
         additional_run_info['budget'] = self.budget
 
-        rval_dict = {'loss': cost,
-                     'additional_run_info': additional_run_info,
-                     'status': status}
+        rval_dict = {
+            'loss': cost,
+            'additional_run_info': additional_run_info,
+            'status': status,
+            'last_epoch': TrainerChoice.epoch_started,
+        }
 
         self.queue.put(rval_dict)
         return None

@@ -453,6 +453,7 @@ def eval_train_function(
     all_supported_metrics: bool = True,
     search_space_updates: Optional[HyperparameterSearchSpaceUpdates] = None,
     instance: str = None,
+    epoch_done: int = None,
 ) -> None:
     """
     This closure allows the communication between the ExecuteTaFuncWithQueue and the
@@ -516,6 +517,9 @@ def eval_train_function(
             This instance is a compatibility argument for SMAC, that is capable of working
             with multiple datasets at the same time.
     """
+    from autoPyTorch.pipeline.components.training.trainer import TrainerChoice
+
+    TrainerChoice.epoch_started = epoch_done
     evaluator = TrainEvaluator(
         backend=backend,
         queue=queue,
