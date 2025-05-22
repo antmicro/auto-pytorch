@@ -67,6 +67,8 @@ class TrainerChoice(autoPyTorchChoice):
 
     """
 
+    epoch_started = 0
+
     def __init__(self,
                  dataset_properties: Dict[str, BaseDatasetPropertiesType],
                  random_state: Optional[np.random.RandomState] = None
@@ -220,11 +222,16 @@ class TrainerChoice(autoPyTorchChoice):
         )
 
         # Call the actual fit function.
-        self._fit(
-            X=X,
-            y=y,
-            **kwargs
-        )
+        try:
+            self._fit(
+                X=X,
+                y=y,
+                **kwargs
+            )
+        finally:
+            if self.writer:
+                self.writer.add_scalar("end_epoch", TrainerChoice.epoch_started)
+                self.writer.flush()
 
         return cast(autoPyTorchComponent, self.choice)
 
@@ -284,14 +291,16 @@ class TrainerChoice(autoPyTorchChoice):
         # component choices. In this case, is what trainer choices are available
         assert self.choice is not None
 
+        TrainerChoice.epoch_started += 1
+
         # Setup a Logger and other logging support
         # Writer is not pickable -- make sure it is not saved in self
         writer = None
         if 'use_tensorboard_logger' in X and X['use_tensorboard_logger']:
-            writer = SummaryWriter(log_dir=X['backend'].temporary_directory)
-            writer.add_scalar(
-                "num_run", X["num_run"]
-            )
+            self.writer = SummaryWriter(log_dir=X['backend'].temporary_directory)
+            writer = self.writer
+            writer.add_scalar("num_run", X["num_run"])
+            writer.add_scalar("start_epoch", TrainerChoice.epoch_started)
 
         total_parameter_count, trainable_parameter_count = self.count_parameters(X['network'])
         writer.add_scalar("Model/Total parameters", total_parameter_count)
@@ -335,6 +344,9 @@ class TrainerChoice(autoPyTorchChoice):
 
             # prepare epoch
             start_time = time.time()
+            # Increase global counter of epochs
+            if epoch != 1:
+                TrainerChoice.epoch_started += 1
 
             self.choice.on_epoch_start(X=X, epoch=epoch)
 
