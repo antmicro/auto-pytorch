@@ -208,6 +208,10 @@ class TrainEvaluator(AbstractEvaluator):
             except ModelTooLargeError as ex:
                 self.logger.warning(str(ex) + " - skipping the model")
                 status = StatusType.MEMOUT
+            except Exception as ex:
+                self.logger.warning(f"Exception during train/eval: {ex}")
+                self.logger.debug("The exception traceback", exc_info=ex)
+                raise
             else:
                 # If training has been stopped early, mark this model as final
                 if "trainer" in pipeline.named_steps and (
