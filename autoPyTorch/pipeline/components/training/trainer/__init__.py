@@ -316,7 +316,7 @@ class TrainerChoice(autoPyTorchChoice):
         if pre_training_callback:
             self.logger.debug("Running pre-training callback")
             try:
-                model_size = pre_training_callback(X)
+                model_size = pre_training_callback(X, self.logger)
                 self.logger.debug(f"Pre-training callback, model size: {model_size}")
                 if model_size and writer:
                     writer.add_scalar("Model/Optimized model size [KB]", model_size)
