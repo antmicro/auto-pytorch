@@ -1185,6 +1185,11 @@ class BaseTask(ABC):
         elapsed_time = self._stopwatch.wall_elapsed(experiment_task_name)
         time_left_for_smac = max(0, total_walltime_limit - elapsed_time)
 
+        smac_tracker = None
+        if self.pipeline_options["training_tracker"]:
+            smac_tracker = self.pipeline_options["training_tracker"]
+            smac_tracker.set_time_left(time_left_for_smac)
+
         self._logger.info("Starting SMAC with %5.2f sec time left" % time_left_for_smac, console=True)
         if time_left_for_smac <= 0:
             self._logger.warning(" Not starting SMAC because there is no time left")
@@ -1211,6 +1216,7 @@ class BaseTask(ABC):
                 min_budget=min_budget,
                 max_budget=max_budget,
                 ensemble_callback=proc_ensemble,
+                progress_callback=smac_tracker,
                 logger_port=self._logger_port,
                 # We do not increase the num_run here, this is something
                 # smac does internally
