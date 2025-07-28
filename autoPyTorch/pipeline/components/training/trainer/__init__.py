@@ -473,6 +473,10 @@ class TrainerChoice(autoPyTorchChoice):
         for name, metric in (metrics if metrics else {}).items():
             self.logger.info(f"{name}: {metric}", console=True)
 
+        if X["training_tracker"]:
+            self.tracked_metrics = metrics
+
+
         # Tag as fitted
         self.fitted_ = True
 

@@ -228,6 +228,11 @@ class TrainEvaluator(AbstractEvaluator):
             additional_run_info = pipeline.get_additional_run_info() if hasattr(
                 pipeline, 'get_additional_run_info') else {}
 
+            if "trainer" in pipeline.named_steps:
+                metrics = getattr(pipeline.named_steps["trainer"], "tracked_metrics", None)
+                if metrics:
+                    additional_run_info["tracked_metrics"] = metrics
+
             self.logger.debug("In train evaluator.fit_predict_and_loss, num_run: {} loss:{},"
                               " status: {},\nadditional run info:\n{}".format(self.num_run,
                                                                               loss,
@@ -370,6 +375,12 @@ class TrainEvaluator(AbstractEvaluator):
                 self.num_run,
                 opt_loss
             ))
+
+            if "trainer" in pipeline.named_steps:
+                metrics = getattr(pipeline.named_steps["trainer"], "tracked_metrics", None)
+                if metrics:
+                    additional_run_info["tracked_metrics"] = metrics
+
             self.finish_up(
                 loss=opt_loss,
                 train_loss=train_loss,
