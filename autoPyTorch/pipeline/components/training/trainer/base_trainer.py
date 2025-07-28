@@ -314,7 +314,8 @@ class BaseTrainerComponent(autoPyTorchTrainingComponent):
             self.scheduler.step()
 
     def train_epoch(self, train_loader: torch.utils.data.DataLoader, epoch: int,
-                    writer: Optional[SummaryWriter],
+                    writer: Optional[SummaryWriter], 
+                    post_step_callback: Optional[Callable[float, torch.Tensor]] = None
                     ) -> Tuple[Optional[float], Dict[str, float]]:
         """
         Train the model for a single epoch.
@@ -339,6 +340,9 @@ class BaseTrainerComponent(autoPyTorchTrainingComponent):
                 break
 
             loss, outputs = self.train_step(data, targets)
+
+            if post_step_callback:
+                post_step_callback(loss, outputs)
 
             if self.metrics_during_training:
                 # save for metric evaluation
