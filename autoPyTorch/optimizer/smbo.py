@@ -424,6 +424,9 @@ class AutoMLSMBO(object):
 
         self.logger.info("finished SMBO.optimize()")
 
+        if self.progress_callback is not None:
+            self.progress_callback.stop()
+
         self.runhistory = smac.solver.runhistory
         self.trajectory = smac.solver.intensifier.traj_logger.trajectory
         if isinstance(smac.solver.tae_runner, DaskParallelRunner):

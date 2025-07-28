@@ -21,6 +21,7 @@ class TrainingProgressTracker(IncorporateRunResultCallback, ABC):
         self,
         total_time: float,
     ):
+        self.isTracking = False
         self.total_time = total_time
 
     def set_time_left(self, time_seconds: float):
@@ -31,6 +32,27 @@ class TrainingProgressTracker(IncorporateRunResultCallback, ABC):
         Start the tracking process
         """
         self.start_time = time.time()
+        self.isTracking = True
+        self.on_start()
+
+
+    def on_start(self):
+        pass
+
+
+    def stop(self):
+        """
+        Stop the tracking process
+        """
+        self.stop_time = time.time()
+        self.isTracking = False
+        self.on_stop()
+
+
+    def on_stop(self):
+        pass
+
+
     def __call__(
         self,
         smbo: 'SMBO',
@@ -45,6 +67,9 @@ class TrainingProgressTracker(IncorporateRunResultCallback, ABC):
         if "tracked_metrics" in result.additional_info:
             metrics = result.additional_info["tracked_metrics"]
 
+        model_name=None
+        if "network_backbone:__choice__" in run_info.config:
+            model_name=run_info.config["network_backbone:__choice__"]
         metrics = metrics if metrics else {}
         cost=result.cost
         self.report_progress(time_passed=result.time, metrics=metrics, cost=cost, model=model_name)
@@ -54,6 +79,7 @@ class TrainingProgressTracker(IncorporateRunResultCallback, ABC):
         self,
         time_passed: float,
         metrics: dict,
+        model: str,
         cost
     ) -> None:
         """Callback that reports on assigned tasks' progress
