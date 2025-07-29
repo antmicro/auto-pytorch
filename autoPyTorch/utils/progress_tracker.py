@@ -3,6 +3,7 @@ from typing import Dict
 from abc import ABC, abstractmethod
 
 import time
+import torch
 
 from smac.callbacks import IncorporateRunResultCallback
 from smac.optimizer.smbo import SMBO
@@ -32,13 +33,12 @@ class TrainingProgressTracker(IncorporateRunResultCallback, ABC):
         Start the tracking process
         """
         self.start_time = time.time()
+        self.last_time_updated = self.start_time
         self.isTracking = True
         self.on_start()
 
-
     def on_start(self):
         pass
-
 
     def stop(self):
         """
@@ -48,10 +48,8 @@ class TrainingProgressTracker(IncorporateRunResultCallback, ABC):
         self.isTracking = False
         self.on_stop()
 
-
     def on_stop(self):
         pass
-
 
     def __call__(
         self,
@@ -61,18 +59,26 @@ class TrainingProgressTracker(IncorporateRunResultCallback, ABC):
         run_info: RunInfo
     ) -> None:
 
+        if not self.isTracking:
+            return
+        cur_time = time.time()
+
         total_time_passed = cur_time - self.start_time
         total_time_left = self.total_time - total_time_passed
+
+        time_passed = cur_time - self.last_time_updated
+        self.last_time_updated = cur_time
+
         metrics = None
         if "tracked_metrics" in result.additional_info:
             metrics = result.additional_info["tracked_metrics"]
 
         model_name=None
         if "network_backbone:__choice__" in run_info.config:
-            model_name=run_info.config["network_backbone:__choice__"]
+            model_name = run_info.config["network_backbone:__choice__"]
         metrics = metrics if metrics else {}
-        cost=result.cost
-        self.report_progress(time_passed=result.time, metrics=metrics, cost=cost, model=model_name)
+        cost = result.cost
+        self.report_progress(time_passed=time_passed, metrics=metrics, cost=cost, model=model_name)
 
     @abstractmethod
     def report_progress(
