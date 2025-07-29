@@ -97,3 +97,50 @@ class TrainingProgressTracker(IncorporateRunResultCallback, ABC):
 
         raise NotImplementedError("Function called on ProgressTracker, this can only be called by "
                                   "specific progress tracker")
+
+class TrainingEpochTracker(ABC):
+
+    def __init__(self):
+        self.total_steps = None
+        self.isTracking = False
+
+    def start(self, total_epoch_steps: int):
+        self.start_time = time.time()
+        self.isTracking = True
+        self.total_steps = total_epoch_steps
+        self.on_start(total_epoch_steps)
+
+    def on_start(self, total_epoch_steps: int):
+        pass
+
+    def stop(self):
+        self.stop_time = time.time()
+        self.isTracking = False
+        self.on_stop()
+
+    def on_stop(self):
+        pass
+
+    def __call__(
+        self,
+        loss: float,
+        result: torch.Tensor
+    ) -> None:
+        self.report_step_progress(loss, result)
+
+    @abstractmethod
+    def report_step_progress(
+        self,
+        loss: float,
+        result: torch.Tensor
+    ) -> None:
+        """Callback that reports on step progress
+
+        Args:
+            loss (float):
+                loss of the current epoch step
+            result (torch.Tensor):
+                result of the current training step
+        """
+        raise NotImplementedError("Function called on ProgressTracker, this can only be called by "
+                                  "specific progress tracker")

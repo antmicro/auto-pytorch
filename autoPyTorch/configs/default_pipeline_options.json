@@ -9,5 +9,6 @@
     "metrics_during_training": "True",
     "pre_training_callback": null,
     "training_tracker": null,
+    "training_epoch_tracker": null,
     "data_loader_workers": null
 }

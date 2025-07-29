@@ -359,6 +359,8 @@ class TrainerChoice(autoPyTorchChoice):
 
         epoch = 1
 
+        epoch_tracker: TrainingEpochTracker = X['training_epoch_tracker']
+
         while True:
 
             # prepare epoch
@@ -370,13 +372,19 @@ class TrainerChoice(autoPyTorchChoice):
             self.choice.on_epoch_start(X=X, epoch=epoch)
 
             try:
+                if epoch_tracker:
+                    num_iters = len(X['train_data_loader'])
+                    epoch_tracker.start(num_iters)
                 # training
                 self.logger.debug(f"Start training epoch {epoch}")
                 train_loss, train_metrics = self.choice.train_epoch(
                     train_loader=X['train_data_loader'],
                     epoch=epoch,
                     writer=writer,
+                    post_step_callback=epoch_tracker
                 )
+                if epoch_tracker:
+                    epoch_tracker.stop()
                 # its fine if train_loss is None due to `is_max_time_reached()`
                 if train_loss is None:
                     if self.budget_tracker.is_max_time_reached():
