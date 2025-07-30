@@ -28,28 +28,21 @@ class TrainingProgressTracker(IncorporateRunResultCallback, ABC):
     def set_time_left(self, time_seconds: float):
         self.total_time = time_seconds
 
-    def start(self):
+    def __enter__(self):
         """
         Start the tracking process
         """
         self.start_time = time.time()
         self.last_time_updated = self.start_time
         self.isTracking = True
-        self.on_start()
 
-    def on_start(self):
-        pass
 
-    def stop(self):
+    def __exit__(self, exc_type, exc_val, exc_tb ):
         """
         Stop the tracking process
         """
         self.stop_time = time.time()
         self.isTracking = False
-        self.on_stop()
-
-    def on_stop(self):
-        pass
 
     def __call__(
         self,
@@ -110,29 +103,18 @@ class TrainingEpochTracker(ABC):
         self.total_steps = None
         self.isTracking = False
 
-    def start(self, total_epoch_steps: int):
+    def __call__(self, iter_count: int):
+        self.total_steps = iter_count
+        return self
+
+
+    def __enter__( self ):
         self.start_time = time.time()
         self.isTracking = True
-        self.total_steps = total_epoch_steps
-        self.on_start(total_epoch_steps)
 
-    def on_start(self, total_epoch_steps: int):
-        pass
-
-    def stop(self):
+    def __exit__(self, exc_type, exc_val, exc_tb ):
         self.stop_time = time.time()
         self.isTracking = False
-        self.on_stop()
-
-    def on_stop(self):
-        pass
-
-    def __call__(
-        self,
-        loss: float,
-        result: torch.Tensor
-    ) -> None:
-        self.report_step_progress(loss, result)
 
     @abstractmethod
     def report_step_progress(

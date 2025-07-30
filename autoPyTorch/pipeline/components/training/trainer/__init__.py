@@ -33,6 +33,10 @@ from autoPyTorch.pipeline.components.training.trainer.base_trainer import (
     BudgetTracker,
     RunSummary,
 )
+from autoPyTorch.utils.progress_tracker import (
+    TrainingEpochTracker
+)
+from contextlib import nullcontext
 from autoPyTorch.utils.common import FitRequirement, get_device_from_fit_dictionary, TAETimeoutException
 from autoPyTorch.utils.logging_ import get_named_client_logger
 
@@ -360,6 +364,9 @@ class TrainerChoice(autoPyTorchChoice):
         epoch = 1
 
         epoch_tracker: TrainingEpochTracker = X['training_epoch_tracker']
+        post_step_callback = None
+        if epoch_tracker:
+            post_step_callback = epoch_tracker.report_step_progress
 
         while True:
 
@@ -372,19 +379,15 @@ class TrainerChoice(autoPyTorchChoice):
             self.choice.on_epoch_start(X=X, epoch=epoch)
 
             try:
-                if epoch_tracker:
-                    num_iters = len(X['train_data_loader'])
-                    epoch_tracker.start(num_iters)
                 # training
                 self.logger.debug(f"Start training epoch {epoch}")
-                train_loss, train_metrics = self.choice.train_epoch(
-                    train_loader=X['train_data_loader'],
-                    epoch=epoch,
-                    writer=writer,
-                    post_step_callback=epoch_tracker
-                )
-                if epoch_tracker:
-                    epoch_tracker.stop()
+                with epoch_tracker(len(X['train_data_loader'])) if epoch_tracker else nullcontext():
+                    train_loss, train_metrics = self.choice.train_epoch(
+                        train_loader=X['train_data_loader'],
+                        epoch=epoch,
+                        writer=writer,
+                        post_step_callback=post_step_callback
+                    )
                 # its fine if train_loss is None due to `is_max_time_reached()`
                 if train_loss is None:
                     if self.budget_tracker.is_max_time_reached():

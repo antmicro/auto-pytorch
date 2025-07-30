@@ -32,7 +32,10 @@ from autoPyTorch.datasets.resampling_strategy import (
     NoResamplingStrategyTypes
 )
 from autoPyTorch.ensemble.ensemble_builder import EnsembleBuilderManager
-from autoPyTorch.utils.progress_tracker import TrainingProgressTracker
+from autoPyTorch.utils.progress_tracker import (
+    TrainingProgressTracker
+)
+from contextlib import nullcontext
 from autoPyTorch.evaluation.tae import ExecuteTaFuncWithQueue, get_cost_of_crash
 from autoPyTorch.optimizer.utils import read_forecasting_init_configurations, read_return_initial_configurations
 from autoPyTorch.pipeline.components.training.metrics.base import autoPyTorchMetric
@@ -411,21 +414,18 @@ class AutoMLSMBO(object):
 
         if self.ensemble_callback is not None:
             smac.register_callback(self.ensemble_callback)
+
         if self.progress_callback is not None:
             smac.register_callback(self.progress_callback)
-            self.progress_callback.start()
 
-        self.logger.info("initialised SMBO, running SMBO.optimize()")
+        with self.progress_callback if self.progress_callback else nullcontext():
+            self.logger.info("initialised SMBO, running SMBO.optimize()")
+            try:
+                smac.optimize()
+            except KeyboardInterrupt:
+                self.logger.info("Stopping optimization")
 
-        try:
-            smac.optimize()
-        except KeyboardInterrupt:
-            self.logger.info("Stopping optimization")
-
-        self.logger.info("finished SMBO.optimize()")
-
-        if self.progress_callback is not None:
-            self.progress_callback.stop()
+        self.logger.info("finished SMBO.optimize()", console=True)
 
         self.runhistory = smac.solver.runhistory
         self.trajectory = smac.solver.intensifier.traj_logger.trajectory
