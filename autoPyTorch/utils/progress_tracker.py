@@ -9,6 +9,8 @@ from smac.callbacks import IncorporateRunResultCallback
 from smac.optimizer.smbo import SMBO
 from smac.runhistory.runhistory import RunInfo, RunValue
 
+from typing import Optional, Dict
+
 class TrainingProgressTracker(IncorporateRunResultCallback, ABC):
     """
     Used to track progress in Optimization step
@@ -97,7 +99,7 @@ class TrainingProgressTracker(IncorporateRunResultCallback, ABC):
         raise NotImplementedError("Function called on ProgressTracker, this can only be called by "
                                   "specific progress tracker")
 
-class TrainingEpochTracker(ABC):
+class EpochTracker(ABC):
 
     def __init__(self):
         self.total_steps = None
@@ -120,15 +122,27 @@ class TrainingEpochTracker(ABC):
     def report_step_progress(
         self,
         loss: float,
-        result: torch.Tensor
+        batch_size: int,
+        outputs: torch.Tensor,
+        targets: torch.Tensor,
+        additional_info: Optional[Dict] = None
     ) -> None:
         """Callback that reports on step progress
 
         Args:
             loss (float):
-                loss of the current epoch step
+                Loss of the current epoch step
+            batch_size(int):
+                Batch size of this step
+            outputs(torch.Tensor):
+                Outputs of this step
+            targets(torch.Tensor):
+                Targets of this step
             result (torch.Tensor):
-                result of the current training step
+                Result of the current training step
+            additional_info (Optional[Dict]):
+                Additional info concerning current epoch.
+                In 'evaluation_epoch_tracker' it will be part of the dataset that is used for evaluation
         """
         raise NotImplementedError("Function called on ProgressTracker, this can only be called by "
                                   "specific progress tracker")

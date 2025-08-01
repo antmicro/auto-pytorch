@@ -315,7 +315,7 @@ class BaseTrainerComponent(autoPyTorchTrainingComponent):
 
     def train_epoch(self, train_loader: torch.utils.data.DataLoader, epoch: int,
                     writer: Optional[SummaryWriter], 
-                    post_step_callback: Optional[Callable[float, torch.Tensor]] = None
+                    post_step_callback: Optional[Callable[[float, int, torch.Tensor, torch.Tensor], None]] = None
                     ) -> Tuple[Optional[float], Dict[str, float]]:
         """
         Train the model for a single epoch.
@@ -341,8 +341,6 @@ class BaseTrainerComponent(autoPyTorchTrainingComponent):
 
             loss, outputs = self.train_step(data, targets)
 
-            if post_step_callback:
-                post_step_callback(loss, outputs)
 
             if self.metrics_during_training:
                 # save for metric evaluation
@@ -352,6 +350,9 @@ class BaseTrainerComponent(autoPyTorchTrainingComponent):
             batch_size = data.size(0)
             loss_sum += loss * batch_size
             N += batch_size
+
+            if post_step_callback:
+                post_step_callback(loss, batch_size, outputs, targets)
 
             if writer:
                 writer.add_scalar(
