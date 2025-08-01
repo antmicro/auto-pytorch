@@ -419,6 +419,7 @@ class BaseTrainerComponent(autoPyTorchTrainingComponent):
 
     def evaluate(self, test_loader: torch.utils.data.DataLoader, epoch: int,
                  writer: Optional[SummaryWriter], data_part: str = "Val",
+                 post_step_callback: Optional[Callable[[float, int, torch.Tensor, torch.Tensor, Dict], None]] = None
                  ) -> Tuple[float, Dict[str, float]]:
         """
         Evaluate the model in both metrics and criterion
@@ -462,6 +463,11 @@ class BaseTrainerComponent(autoPyTorchTrainingComponent):
                         loss.item(),
                         epoch * len(test_loader) + step,
                     )
+                if post_step_callback:
+                    info = {
+                        "data_part" : data_part
+                    }
+                    post_step_callback(loss, batch_size, outputs, targets, info)
 
         if writer and N != 0:
             writer.add_scalar(
