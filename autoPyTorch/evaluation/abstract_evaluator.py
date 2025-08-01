@@ -28,6 +28,7 @@ import autoPyTorch.pipeline.traditional_tabular_classification
 import autoPyTorch.pipeline.traditional_tabular_regression
 from autoPyTorch.pipeline.components.training.trainer import TrainerChoice
 from autoPyTorch.automl_common.common.utils.backend import Backend
+from torch.utils.tensorboard.writer import SummaryWriter
 from autoPyTorch.constants import (
     CLASSIFICATION_TASKS,
     FORECASTING_BUDGET_TYPE,
@@ -566,6 +567,11 @@ class AbstractEvaluator(object):
         self.pipeline: Optional[BaseEstimator] = None
         self.logger.debug("Fit dictionary in Abstract evaluator: {}".format(dict_repr(self.fit_dictionary)))
         self.logger.debug("Search space updates :{}".format(self.search_space_updates))
+        if 'use_tensorboard_logger' in pipeline_options and pipeline_options['use_tensorboard_logger']:
+            self.logger.info(f"Evaluator using writer: {backend.temporary_directory + '/pipeline'}")
+            self.writer = SummaryWriter(backend.temporary_directory + "/pipeline")
+        else:
+            self.writer = None
 
     def _init_datamanager_info(
         self,
@@ -827,6 +833,38 @@ class AbstractEvaluator(object):
             additional_run_info['validation_loss'] = validation_loss
         if test_loss is not None:
             additional_run_info['test_loss'] = test_loss
+
+        # Add information to additional info that can be useful for other functionalities
+        additional_run_info['configuration'] = self.configuration \
+            if not isinstance(self.configuration, Configuration) else self.configuration.get_dictionary()
+        additional_run_info['budget'] = self.budget
+
+        writer = self.writer
+        if writer:
+            try:
+                writer.add_scalar("num_run", self.num_run)
+                if loss is not None:
+                    for key, value in loss.items():
+                        writer.add_scalar('Pipeline/Loss/' + key, value, self.num_run)
+                if train_loss is not None:
+                    for key, value in train_loss.items():
+                        writer.add_scalar('Pipeline/Train/Loss/' + key, value, self.num_run)
+                if validation_loss is not None:
+                    for key, value in validation_loss.items():
+                        writer.add_scalar('Pipeline/Val/Loss/' + key, value, self.num_run)
+                if test_loss is not None:
+                    for key, value in test_loss.items():
+                        writer.add_scalar('Pipeline/Test/Loss/' + key, value, self.num_run)
+                writer.add_text('Pipeline/Config', str({}) \
+                    if not isinstance(self.configuration, Configuration) else str(dict(self.configuration)),
+                    self.num_run
+                )
+                if self.budget:
+                    writer.add_scalar('Pipeline/Budget', self.budget, self.num_run)
+                writer.add_text('Pipeline/Status', str(status), self.num_run)
+            except Exception as e:
+                self.logger.warning(f"Encountered an error when recording additional run information {e}", console=True)
+            writer.flush()
 
         # Add information to additional info that can be useful for other functionalities
         additional_run_info['configuration'] = self.configuration \
