@@ -33,9 +33,7 @@ from autoPyTorch.pipeline.components.training.trainer.base_trainer import (
     BudgetTracker,
     RunSummary,
 )
-from autoPyTorch.utils.progress_tracker import (
-    TrainingEpochTracker
-)
+from autoPyTorch.utils.progress_tracker import EpochTracker
 from contextlib import nullcontext
 from autoPyTorch.utils.common import FitRequirement, get_device_from_fit_dictionary, TAETimeoutException
 from autoPyTorch.utils.logging_ import get_named_client_logger
@@ -363,11 +361,14 @@ class TrainerChoice(autoPyTorchChoice):
 
         epoch = 1
 
-        epoch_tracker: TrainingEpochTracker = X['training_epoch_tracker']
-        post_step_callback = None
+        eval_epoch_tracker: EpochTracker = X['evaluation_epoch_tracker']
+        epoch_tracker: EpochTracker = X['training_epoch_tracker']
+        post_train_step_callback = None
         if epoch_tracker:
-            post_step_callback = epoch_tracker.report_step_progress
-
+            post_train_step_callback = epoch_tracker.report_step_progress
+        post_eval_step_callback = None
+        if eval_epoch_tracker:
+            post_eval_step_callback = eval_epoch_tracker.report_step_progress
         while True:
 
             # prepare epoch
@@ -386,7 +387,7 @@ class TrainerChoice(autoPyTorchChoice):
                         train_loader=X['train_data_loader'],
                         epoch=epoch,
                         writer=writer,
-                        post_step_callback=post_step_callback
+                        post_step_callback=post_train_step_callback
                     )
                 # its fine if train_loss is None due to `is_max_time_reached()`
                 if train_loss is None:
@@ -398,9 +399,15 @@ class TrainerChoice(autoPyTorchChoice):
                 val_loss, val_metrics, test_loss, test_metrics = None, {}, None, {}
                 if self.eval_valid_each_epoch(X):
                     if X['val_data_loader']:
-                        val_loss, val_metrics = self.choice.evaluate(X['val_data_loader'], epoch, writer)
+                        with eval_epoch_tracker(len(X['val_data_loader'])) if eval_epoch_tracker else nullcontext():
+                            val_loss, val_metrics = self.choice.evaluate(X['val_data_loader'], epoch, writer,
+                                post_step_callback=post_eval_step_callback
+                            )
                     if 'test_data_loader' in X and X['test_data_loader']:
-                        test_loss, test_metrics = self.choice.evaluate(X['test_data_loader'], epoch, writer, "Test")
+                        with eval_epoch_tracker(len(X['test_data_loader'])) if eval_epoch_tracker else nullcontext():
+                            test_loss, test_metrics = self.choice.evaluate(X['test_data_loader'], epoch, writer, "Test", 
+                                post_step_callback=post_eval_step_callback
+                            )
             except Exception as ex:
                 if isinstance(ex, TAETimeoutException):
                     raise ex
