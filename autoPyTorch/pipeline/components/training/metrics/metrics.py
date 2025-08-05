@@ -72,12 +72,12 @@ recall = make_metric('recall',
 # such an input, which can lead to errors
 
 # Score function for probabilistic classification
-# log_loss = make_metric('log_loss',
-#                        sklearn.metrics.log_loss,
-#                        optimum=0,
-#                        worst_possible_result=MAXINT,
-#                        greater_is_better=False,
-#                        needs_proba=True)
+log_loss = make_metric('log_loss',
+                       sklearn.metrics.log_loss,
+                       optimum=0,
+                       worst_possible_result=MAXINT,
+                       greater_is_better=False,
+                       needs_proba=True)
 
 REGRESSION_METRICS = dict()
 for scorer in [mean_absolute_error, mean_squared_error, root_mean_squared_error,
