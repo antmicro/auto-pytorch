@@ -129,6 +129,9 @@ class _ProbaMetric(autoPyTorchMetric):
         """
 
         if self._metric_func is sklearn.metrics.log_loss:
+
+            y_pred = np.exp(y_pred) / np.sum(np.exp(y_pred))
+            
             n_labels_pred = np.array(y_pred).reshape((len(y_pred), -1)).shape[1]
             n_labels_test = len(np.unique(y_true))
             if n_labels_pred != n_labels_test:

@@ -86,7 +86,7 @@ for scorer in [mean_absolute_error, mean_squared_error, root_mean_squared_error,
 
 CLASSIFICATION_METRICS = dict()
 
-for scorer in [accuracy, balanced_accuracy, roc_auc, average_precision]:
+for scorer in [accuracy, balanced_accuracy, roc_auc, average_precision, log_loss]:
     CLASSIFICATION_METRICS[scorer.name] = scorer
 
 for name, metric in [('precision', sklearn.metrics.precision_score),
