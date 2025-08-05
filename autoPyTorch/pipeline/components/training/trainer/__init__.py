@@ -483,13 +483,10 @@ class TrainerChoice(autoPyTorchChoice):
         if self.checkpoint_dir is not None:
             epoch = self._load_best_weights_and_clean_checkpoints(X)
 
-        self.logger.info(
-            f"Finished training with following validation metrics (epoch {epoch})",
-            console=True,
-        )
+        self.logger.info( f"Finished training with following validation metrics (epoch {epoch})")
         metrics = self.run_summary.get_epoch_metrics(epoch, "val_metrics")
         for name, metric in (metrics if metrics else {}).items():
-            self.logger.info(f"{name}: {metric}", console=True)
+            self.logger.info(f"{name}: {metric}")
 
         if X["training_tracker"]:
             self.tracked_metrics = metrics
