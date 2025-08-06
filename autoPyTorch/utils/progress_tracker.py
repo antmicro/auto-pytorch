@@ -41,21 +41,33 @@ class TrainingProgressTracker(IncorporateRunResultCallback, ABC):
 
         total_time_passed = cur_time - self.start_time
         total_time_left = self.total_time - total_time_passed
-        self.report_progress(total_time_passed=total_time_passed, total_time_left=total_time_left)
+        metrics = None
+        if "tracked_metrics" in result.additional_info:
+            metrics = result.additional_info["tracked_metrics"]
+
+        metrics = metrics if metrics else {}
+        cost=result.cost
+        self.report_progress(time_passed=result.time, metrics=metrics, cost=cost, model=model_name)
+
     @abstractmethod
     def report_progress(
         self,
-        total_time_passed: float,
-        total_time_left: float
-        # logger: PicklableClientLogger
+        time_passed: float,
+        metrics: dict,
+        cost
     ) -> None:
         """Callback that reports on assigned tasks' progress
 
         Args:
-            total_time_passed (float):
-                total time that this task was already running
-            total_time_left (float):
-                total time that this task has still available
+            time_passed (float):
+                Time that has passed since last invocation of report_progress in seconds
+            metrics (dict):
+                Dictionary containing key-value pairs of metric_name-metric_value
+            model (str):
+                Model_backbone that is being reported on
+            cost (float):
+                Cost that is used to evaluate this model, the lower the better
         """
+
         raise NotImplementedError("Function called on ProgressTracker, this can only be called by "
                                   "specific progress tracker")
