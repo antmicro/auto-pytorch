@@ -129,21 +129,7 @@ class _ProbaMetric(autoPyTorchMetric):
         """
 
         if self._metric_func is sklearn.metrics.log_loss:
-
             y_pred = np.exp(y_pred) / np.sum(np.exp(y_pred))
-            
-            n_labels_pred = np.array(y_pred).reshape((len(y_pred), -1)).shape[1]
-            n_labels_test = len(np.unique(y_true))
-            if n_labels_pred != n_labels_test:
-                labels = list(range(n_labels_pred))
-                if sample_weight is not None:
-                    return self._sign * self._metric_func(y_true, y_pred,
-                                                          sample_weight=sample_weight,
-                                                          labels=labels,
-                                                          **self._kwargs)
-                else:
-                    return self._sign * self._metric_func(y_true, y_pred,
-                                                          labels=labels, **self._kwargs)
 
         if sample_weight is not None:
             return self._sign * self._metric_func(y_true, y_pred,
