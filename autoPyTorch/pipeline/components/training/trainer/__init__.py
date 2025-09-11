@@ -322,15 +322,27 @@ class TrainerChoice(autoPyTorchChoice):
         pre_training_callback = X["pre_training_callback"]
         if pre_training_callback:
             self.logger.debug("Running pre-training callback")
+            model_size = None
             try:
-                model_size = pre_training_callback(X, self.logger)
-                self.logger.debug(f"Pre-training callback, model size: {model_size}")
-                if model_size and writer:
-                    writer.add_scalar("Model/Optimized model size [KB]", model_size)
-            except ModelTooLargeError as er:
-                if writer:
-                    writer.add_scalar("Model/Optimized model size [KB]", er.model_size)
-                raise
+                model_initialized, model_size = pre_training_callback(X, self.logger)
+            finally:
+                if model_size:
+                    self.logger.debug(f"Pre-training callback, model size: {model_size}")
+                    if writer:
+                        writer.add_scalar("Model/Optimized model size [KB]", model_size)
+
+            match model_initialized:
+                # NO ERRORS
+                case "success":
+                    pass
+                # COMPATIBILITY CHECK ERROR
+                case "failed_check":
+                    raise ModelCompatibilityError("Model discarded during pre_training")
+                # MODEL IS TOO BIG
+                case "model_too_big":
+                    raise ModelTooLargeError("Model discarded during pre_training")
+                case _:
+                    pass
 
         self.prepare_trainer(X)
 
