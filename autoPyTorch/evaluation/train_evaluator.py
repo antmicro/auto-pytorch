@@ -21,7 +21,7 @@ from autoPyTorch.evaluation.abstract_evaluator import (
 )
 from autoPyTorch.evaluation.utils import DisableFileOutputParameters
 from autoPyTorch.pipeline.components.training.metrics.base import autoPyTorchMetric
-from autoPyTorch.pipeline.components.training.trainer import ModelTooLargeError
+from autoPyTorch.pipeline.components.training.trainer import ModelTooLargeError, ModelCompatibilityError
 from autoPyTorch.utils.common import dict_repr, subsampler
 from autoPyTorch.utils.hyperparameter_search_space_update import HyperparameterSearchSpaceUpdates
 
@@ -208,6 +208,9 @@ class TrainEvaluator(AbstractEvaluator):
             except ModelTooLargeError as ex:
                 self.logger.warning(str(ex) + " - skipping the model")
                 status = StatusType.MEMOUT
+            except ModelCompatibilityError as ex:
+                self.logger.warning(str(ex) + " - skipping the model")
+                status = StatusType.ABORT
             except Exception as ex:
                 self.logger.warning(f"Exception during train/eval: {ex}")
                 self.logger.debug("The exception traceback", exc_info=ex)
