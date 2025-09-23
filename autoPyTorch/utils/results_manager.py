@@ -704,6 +704,7 @@ class ResultsManager:
             "crash": sum([s == StatusType.CRASHED for s in search_results.status_types]),
             "timeout": sum([s == StatusType.TIMEOUT for s in search_results.status_types]),
             "memout": sum([s == StatusType.MEMOUT for s in search_results.status_types]),
+            "incompatbile": sum([s == StatusType.ABORT for s in search_results.status_types]),
         }, search_results
 
     def sprint_statistics(
