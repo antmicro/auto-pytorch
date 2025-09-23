@@ -56,6 +56,13 @@ class ModelTooLargeError(Exception):
         super().__init__(*args)
         self.model_size = model_size
 
+class ModelCompatibilityError(Exception):
+    """
+    Raised if generated model configuration is incompatible.
+    """
+
+    def __init__(self, *args):
+        super().__init__(*args)
 
 class TrainerChoice(autoPyTorchChoice):
     """This class is an interface to the PyTorch trainer.
