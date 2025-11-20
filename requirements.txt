@@ -1,5 +1,5 @@
 pandas
-torch>=1.10.1
+torch>=2.0.1,<=2.5.0
 torchvision
 expecttest
 tensorboard
