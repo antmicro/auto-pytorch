@@ -16,6 +16,8 @@ from sklearn.ensemble import VotingClassifier
 
 from smac.tae import StatusType
 
+from autoPyTorch.pipeline.event import PipelineEvent
+
 import autoPyTorch.pipeline.image_classification
 import autoPyTorch.pipeline.tabular_classification
 import autoPyTorch.pipeline.tabular_regression

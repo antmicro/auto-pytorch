@@ -23,6 +23,8 @@ from autoPyTorch.pipeline.components.training.metrics.metrics import (
 from autoPyTorch.pipeline.components.training.metrics.utils import calculate_score
 from autoPyTorch.utils.implementations import get_loss_weight_strategy
 
+from autoPyTorch.pipeline.event import TrainingEvent, PipelineEvent
+
 
 class BudgetTracker(object):
     def __init__(self,
@@ -314,7 +316,7 @@ class BaseTrainerComponent(autoPyTorchTrainingComponent):
             self.scheduler.step()
 
     def train_epoch(self, train_loader: torch.utils.data.DataLoader, epoch: int,
-                    writer: Optional[SummaryWriter], 
+                    writer: Optional[SummaryWriter],
                     post_step_callback: Optional[Callable[[float, int, torch.Tensor, torch.Tensor], None]] = None
                     ) -> Tuple[Optional[float], Dict[str, float]]:
         """
@@ -356,7 +358,7 @@ class BaseTrainerComponent(autoPyTorchTrainingComponent):
 
             if writer:
                 writer.add_scalar(
-                    'Train/loss',
+                    str(TrainingEvent.TRAIN_LOSS),
                     loss,
                     epoch * len(train_loader) + step,
                 )
@@ -366,7 +368,7 @@ class BaseTrainerComponent(autoPyTorchTrainingComponent):
 
         if writer:
             writer.add_scalar(
-                "Train/epoch/avg_loss",
+                str(TrainingEvent.TRAIN_EPOCH_AVGLOSS),
                 loss_sum / N,
                 epoch
             )
@@ -441,6 +443,13 @@ class BaseTrainerComponent(autoPyTorchTrainingComponent):
         outputs_data = list()
         targets_data = list()
 
+        # Validate the data_part.
+        try:
+            loss_enum = getattr(TrainingEvent, f"{data_part.upper()}_LOSS")
+            loss_epoch_enum = getattr(TrainingEvent, f"{data_part.upper()}_EPOCH_AVGLOSS")
+        except AttributeError:
+            raise ValueError(f"unknown data_part: {data_part}")
+
         with torch.no_grad():
             for step, (data, targets) in enumerate(test_loader):
                 batch_size = data.shape[0]
@@ -459,7 +468,7 @@ class BaseTrainerComponent(autoPyTorchTrainingComponent):
 
                 if writer:
                     writer.add_scalar(
-                        f"{data_part}/loss",
+                        str(loss_enum),
                         loss.item(),
                         epoch * len(test_loader) + step,
                     )
@@ -471,7 +480,7 @@ class BaseTrainerComponent(autoPyTorchTrainingComponent):
 
         if writer and N != 0:
             writer.add_scalar(
-                f"{data_part}/epoch/avg_loss",
+                str(loss_epoch_enum),
                 loss_sum / N,
                 epoch,
             )

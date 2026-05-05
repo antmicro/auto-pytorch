@@ -26,6 +26,8 @@ from autoPyTorch.pipeline.components.training.trainer.base_trainer import (
     BudgetTracker
 )
 
+from autoPyTorch.pipeline.event import TrainingEvent, PipelineEvent
+
 
 class ForecastingBaseTrainerComponent(BaseTrainerComponent, ABC):
     def prepare(  # type: ignore[override]
@@ -116,7 +118,7 @@ class ForecastingBaseTrainerComponent(BaseTrainerComponent, ABC):
 
             if writer:
                 writer.add_scalar(
-                    'Train/loss',
+                    str(TrainingEvent.TRAIN_LOSS),
                     loss,
                     epoch * len(train_loader) + step,
                 )
@@ -306,7 +308,7 @@ class ForecastingBaseTrainerComponent(BaseTrainerComponent, ABC):
 
                 if writer:
                     writer.add_scalar(
-                        'Val/loss',
+                        str(TrainingEvent.VAL_LOSS),
                         loss.item(),
                         epoch * len(test_loader) + step,
                     )
