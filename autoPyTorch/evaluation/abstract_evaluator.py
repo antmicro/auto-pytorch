@@ -3,6 +3,7 @@ import time
 import warnings
 from multiprocessing.queues import Queue
 from typing import Any, Dict, List, Optional, Tuple, Union, no_type_check
+from pathlib import Path
 
 from ConfigSpace import Configuration
 
@@ -570,8 +571,9 @@ class AbstractEvaluator(object):
         self.logger.debug("Fit dictionary in Abstract evaluator: {}".format(dict_repr(self.fit_dictionary)))
         self.logger.debug("Search space updates :{}".format(self.search_space_updates))
         if 'use_tensorboard_logger' in pipeline_options and pipeline_options['use_tensorboard_logger']:
-            self.logger.info(f"Evaluator using writer: {backend.temporary_directory + '/pipeline'}")
-            self.writer = SummaryWriter(backend.temporary_directory + "/pipeline")
+            logpath = Path(backend.temporary_directory) / "pipeline"
+            self.logger.info(f"Evaluator is using writer: {logpath}")
+            self.writer = SummaryWriter(logpath)
         else:
             self.writer = None
 

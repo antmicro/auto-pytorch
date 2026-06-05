@@ -425,7 +425,7 @@ class AutoMLSMBO(object):
             except KeyboardInterrupt:
                 self.logger.info("Stopping optimization")
 
-        self.logger.info("finished SMBO.optimize()", console=True)
+        self.logger.info("finished SMBO.optimize()")
 
         self.runhistory = smac.solver.runhistory
         self.trajectory = smac.solver.intensifier.traj_logger.trajectory
