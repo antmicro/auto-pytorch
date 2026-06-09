@@ -238,7 +238,7 @@ def start_log_server(
     host: str,
     logname: str,
     event: threading.Event,
-    port: multiprocessing.Value,
+    conn: multiprocessing.connection.Connection,
     filename: str,
     logging_config: Dict,
     output_dir: str,
@@ -247,27 +247,22 @@ def start_log_server(
                  logging_config=logging_config,
                  output_dir=output_dir)
 
-    while True:
-        # Loop until we find a valid port
-        _port = random.randint(10000, 65535)
-        try:
-            receiver = LogRecordSocketReceiver(
-                host=host,
-                port=_port,
-                logname=logname,
-                event=event,
-            )
-            with port.get_lock():
-                port.value = _port
-            receiver.serve_until_stopped()
-            break
-        except OSError:
-            continue
-        except KeyboardInterrupt:
-            parent = psutil.Process(os.getppid())
-            parent.send_signal(signal.SIGINT)
-            break
+    try:
+        receiver = LogRecordSocketReceiver(
+            host=host,
+            port=0, # Let the OS handle getting the port
+            logname=logname,
+            event=event,
+        )
 
+        _port = receiver.portnumber
+        conn.send(_port)
+        conn.close()
+
+        receiver.serve_until_stopped()
+    except KeyboardInterrupt:
+        parent = psutil.Process(os.getppid())
+        parent.send_signal(signal.SIGINT)
 
 class LogRecordSocketReceiver(socketserver.ThreadingTCPServer):
     """
@@ -300,3 +295,7 @@ class LogRecordSocketReceiver(socketserver.ThreadingTCPServer):
                 self.handle_request()
             if self.event is not None and self.event.is_set():
                 break
+
+    @property
+    def portnumber(self) -> int:
+        return self.socket.getsockname()[1]

@@ -534,6 +534,9 @@ class BaseTask(ABC):
         port = context.Value('l')  # be safe by using a long
         port.value = -1
 
+        # Pipe for receiving the port from the subprocess.
+        parent_conn, child_conn = context.Pipe(duplex=False)
+
         # "BaseContext" has no attribute "Process" motivates to ignore the attr check
         self.logging_server = context.Process(  # type: ignore [attr-defined]
             target=start_log_server,
@@ -541,7 +544,7 @@ class BaseTask(ABC):
                 host='localhost',
                 logname=logger_name,
                 event=self.stop_logging_server,
-                port=port,
+                conn=child_conn,
                 filename='%s.log' % str(logger_name),
                 logging_config=self.logging_config,
                 output_dir=self._backend.temporary_directory,
@@ -550,14 +553,9 @@ class BaseTask(ABC):
 
         self.logging_server.start()
 
-        while True:
-            with port.get_lock():
-                if port.value == -1:
-                    time.sleep(0.01)
-                else:
-                    break
-
-        self._logger_port = int(port.value)
+        child_conn.close()
+        self._logger_port = parent_conn.recv()
+        parent_conn.close()
 
         return get_named_client_logger(
             name=logger_name,
