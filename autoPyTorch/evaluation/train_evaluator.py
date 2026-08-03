@@ -162,7 +162,7 @@ class TrainEvaluator(AbstractEvaluator):
 
         self.num_folds: int = len(self.splits)
         self.Y_targets: List[Optional[np.ndarray]] = [None] * self.num_folds
-        self.Y_train_targets: np.ndarray = np.ones(self.y_train.shape) * np.NaN
+        self.Y_train_targets: np.ndarray = np.ones(self.y_train.shape) * np.nan
         self.pipelines: List[Optional[BaseEstimator]] = [None] * self.num_folds
         self.indices: List[Optional[Tuple[Union[np.ndarray, List], Union[np.ndarray, List]]]] = [None] * self.num_folds
 
@@ -259,13 +259,13 @@ class TrainEvaluator(AbstractEvaluator):
             self.pipelines = [self._get_pipeline() for _ in range(self.num_folds)]
 
             # stores train loss of each fold.
-            train_losses = [np.NaN] * self.num_folds
+            train_losses = [np.nan] * self.num_folds
             # used as weights when averaging train losses.
-            train_fold_weights = [np.NaN] * self.num_folds
+            train_fold_weights = [np.nan] * self.num_folds
             # stores opt (validation) loss of each fold.
-            opt_losses = [np.NaN] * self.num_folds
+            opt_losses = [np.nan] * self.num_folds
             # weights for opt_losses.
-            opt_fold_weights = [np.NaN] * self.num_folds
+            opt_fold_weights = [np.nan] * self.num_folds
 
             additional_run_info = {}
 
@@ -558,3 +558,4 @@ def eval_train_function(
         search_space_updates=search_space_updates,
     )
     evaluator.fit_predict_and_loss()
+
