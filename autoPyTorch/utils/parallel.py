@@ -33,7 +33,6 @@ def preload_modules(context: multiprocessing.context.BaseContext) -> None:
             'torch',
             'torchvision',
             'tensorboard',
-            'imgaug',
             'catboost',
             'lightgbm',
         ) and 'logging' not in loaded_module

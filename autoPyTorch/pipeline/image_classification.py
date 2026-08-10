@@ -13,7 +13,6 @@ from autoPyTorch.pipeline.components.base_choice import autoPyTorchChoice
 from autoPyTorch.pipeline.components.preprocessing.image_preprocessing.normalise import (
     NormalizerChoice
 )
-from autoPyTorch.pipeline.components.setup.augmentation.image.ImageAugmenter import ImageAugmenter
 from autoPyTorch.pipeline.components.setup.early_preprocessor.EarlyPreprocessing import EarlyPreprocessing
 from autoPyTorch.utils.hyperparameter_search_space_update import HyperparameterSearchSpaceUpdates
 # from autoPyTorch.pipeline.components.setup.lr_scheduler.base_scheduler_choice import SchedulerChoice
@@ -182,7 +181,6 @@ class ImageClassificationPipeline(ClassifierMixin, BasePipeline):
         steps.extend([
             ("normalizer", NormalizerChoice(default_dataset_properties)),
             ("preprocessing", EarlyPreprocessing()),
-            ("image_augmenter", ImageAugmenter())
             # ("network", NetworkChoice(default_dataset_properties)),
             # ("network_init", NetworkInitializerChoice(default_dataset_properties)),
             # ("optimizer", OptimizerChoice(default_dataset_properties)),
