@@ -7,6 +7,7 @@ from ConfigSpace import Configuration
 from ConfigSpace.configuration_space import ConfigurationSpace
 
 import numpy as np
+import sklearn
 
 from sklearn.pipeline import Pipeline
 from sklearn.utils.validation import check_random_state
@@ -92,6 +93,7 @@ class BasePipeline(Pipeline):
         self.include = include if include is not None else {}
         self.exclude = exclude if exclude is not None else {}
         self.search_space_updates = search_space_updates
+        self.sklearn_version = tuple(map(int, (sklearn.__version__).split('.')))
         
         if random_state is None:
             self.random_state = check_random_state(1)
@@ -168,7 +170,14 @@ class BasePipeline(Pipeline):
         fit_params = {key.replace(":", "__"): value for key, value in
                       fit_params.items()}
         fit_params_steps = self._check_method_params(method="fit", props=fit_params)
-        Xt = self._fit(X, y, routed_params=fit_params_steps)
+
+        if self.sklearn_version >= (1, 9, 0):
+            callback_ctx = self._init_callback_context(max_subtasks=len(self.steps))
+            callback_ctx.call_on_fit_task_begin(estimator=self, X=X, y=y)
+            Xt = self._fit(X, y, routed_params=fit_params_steps, callback_ctx=callback_ctx)
+        else:
+            Xt = self._fit(X, y, routed_params=fit_params_steps)
+
         return Xt, fit_params_steps[self.steps[-1][0]]
 
     def fit_estimator(self, X: Dict[str, Any],

@@ -223,11 +223,11 @@ class TimeSeriesForecastingTrainEvaluator(TrainEvaluator):
             # Train losses is not applied here as it might become too expensive
 
             # used as weights when averaging train losses.
-            train_fold_weights = [np.NaN] * self.num_folds
+            train_fold_weights = [np.nan] * self.num_folds
             # stores opt (validation) loss of each fold.
-            opt_losses = [np.NaN] * self.num_folds
+            opt_losses = [np.nan] * self.num_folds
             # weights for opt_losses.
-            opt_fold_weights = [np.NaN] * self.num_folds
+            opt_fold_weights = [np.nan] * self.num_folds
 
             mase_coefficient_val_all = []
             for train_split, test_split in self.splits:
