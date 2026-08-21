@@ -1006,6 +1006,7 @@ class BaseTask(ABC):
             self
 
         """
+        import torch
         if self.task_type != dataset.task_type:
             raise ValueError("Incompatible dataset entered for current task,"
                              "expected dataset to have task type :{} got "
@@ -1026,6 +1027,7 @@ class BaseTask(ABC):
 
         if self._logger is None:
             self._logger = self._get_logger(self.dataset_name)
+        self._logger.info(f"Starting AutoML search with torch {torch.__version__}")
 
         # Setup the logger for the backend
         self._backend.setup_logger(port=self._logger_port)
